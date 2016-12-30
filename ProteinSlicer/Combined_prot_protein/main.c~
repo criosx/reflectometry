@@ -1,0 +1,403 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include "main.h"
+
+//-------------------------------------------------------------------------------------------------------------------------
+void fnAnalyzeMatrix()
+{
+  int iProteinCounter, iSolventCounter, iVoidCounter;
+  int iX, iY, iZ;
+  
+    iProteinCounter=0; iSolventCounter=0; iVoidCounter=0;   //print intermediate result
+    for(iX=0; iX<MATRIXSIZE; iX++)			
+      for(iY=0; iY<MATRIXSIZE; iY++)
+	    for(iZ=0; iZ<MATRIXSIZE; iZ++) 
+  	    {
+  	      switch(iMatrix[iX][iY][iZ])
+		  {
+		    case 0: iVoidCounter++; break;
+		    case 1: iProteinCounter++; break;
+		    case 2: iSolventCounter++; break;		  
+		  }
+	    }
+	  
+     printf("Void   : %lf Percent \n", (double)(iVoidCounter)/pow(MATRIXSIZE,3)*100);
+     printf("Protein: %lf Percent \n", (double)(iProteinCounter)/pow(MATRIXSIZE,3)*100);
+     printf("Solvent: %lf Percent \n", (double)(iSolventCounter)/pow(MATRIXSIZE,3)*100);
+	 printf("Total protein volume [Å^3]: %e \n \n", (double)(iProteinCounter+iVoidCounter)*pow(UNITSIZE,3));
+
+		  
+}
+//-------------------------------------------------------------------------------------------------------------------------
+
+
+double fnArrayPosDifferenz(int iX,int iY,int iZ, double dPosX, double dPosY,double dPosZ)
+{  //calculate the distance between the middle of an array element and a 
+   //position given in coordinates
+  double dx, dy, dz;
+  
+ dx=(((double)(iX-iProbeFrame))*UNITSIZE+dPosXMin-dPosX);
+ dy=(((double)(iY-iProbeFrame))*UNITSIZE+dPosYMin-dPosY);
+ dz=(((double)(iZ-iProbeFrame))*UNITSIZE+dPosZMin-dPosZ);
+ 
+ return sqrt(dx*dx+dy*dy+dz*dz);
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+
+void fnCoord2Array(int* iX, int* iY, int* iZ, double dPosX, double dPosY, double dPosZ)
+{	//converting a position given in coordinates to array indizees
+	//using the minimum Position XMin, YMin and ZMin
+
+  *iX = (int)((dPosX-dPosXMin)/UNITSIZE+0.5)+iProbeFrame;
+  *iY = (int)((dPosY-dPosYMin)/UNITSIZE+0.5)+iProbeFrame;
+  *iZ = (int)((dPosZ-dPosZMin)/UNITSIZE+0.5)+iProbeFrame;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+
+void fnFillVanDerWaals(double dPosX,double dPosY,double dPosZ,char *cAtomType)
+{
+  double dVanDerWaalsRadiusPlus;
+  int iStartX, iStartY, iStartZ, iEndX, iEndY, iEndZ, iX, iY, iZ;
+  
+  //printf("%d %c %lf %lf %lf \n",iNumber, cAtomType, dPosX, dPosY, dPosZ);
+  //printf("%d ",iNumber);
+
+  //VanDerWaalsRadii from www.webelements.com
+  if (strncmp (cAtomType,"Na",2)==0) {dVanDerWaalsRadiusPlus=2.27;}   
+  else if (strncmp (cAtomType,"Si",2)==0) {dVanDerWaalsRadiusPlus=2.10;}
+  else if (strncmp (cAtomType,"C",1)==0) {dVanDerWaalsRadiusPlus=1.90;}  //1.7
+  else if (strncmp (cAtomType,"O",1)==0) {dVanDerWaalsRadiusPlus=1.65;}  //1.52
+  else if (strncmp (cAtomType,"N",1)==0) {dVanDerWaalsRadiusPlus=1.70;}   //1.55
+  else if (strncmp (cAtomType,"P",1)==0) {dVanDerWaalsRadiusPlus=1.80;}
+  else if (strncmp (cAtomType,"S",1)==0) {dVanDerWaalsRadiusPlus=1.90;}  //1.8
+  else if (strncmp (cAtomType,"Cl",1)==0) {dVanDerWaalsRadiusPlus=1.75;}
+  else if (strncmp (cAtomType,"Ca",1)==0) {dVanDerWaalsRadiusPlus=1.80;} //no information in data base
+  else if (strncmp (cAtomType,"Cr",1)==0) {dVanDerWaalsRadiusPlus=1.80;} //no information in data base   
+  else if (strncmp (cAtomType,"Ba",1)==0) {dVanDerWaalsRadiusPlus=2.00;} //no information in data base
+  else if (strncmp (cAtomType,"La",1)==0) {dVanDerWaalsRadiusPlus=2.00;} //no information in data base
+  else if (strncmp (cAtomType,"Au",1)==0) {dVanDerWaalsRadiusPlus=1.66;}   
+  else if (strchr(cAtomType,'H')!=NULL) {dVanDerWaalsRadiusPlus=1.0;}  //1.2
+  else if (strchr(cAtomType,'D')!=NULL) {dVanDerWaalsRadiusPlus=1.0;}  //1.2
+  else {printf( "Atom type not recognized: %s \n", cAtomType);}
+  
+  // calculates cube in which the van der Waals sphere is embedded
+  fnCoord2Array(&iStartX, &iStartY, &iStartZ, dPosX-dVanDerWaalsRadiusPlus, dPosY-dVanDerWaalsRadiusPlus, dPosZ-dVanDerWaalsRadiusPlus);
+  fnCoord2Array(&iEndX, &iEndY, &iEndZ, dPosX+dVanDerWaalsRadiusPlus, dPosY+dVanDerWaalsRadiusPlus, dPosZ+dVanDerWaalsRadiusPlus);
+
+  //check if atom surrounding lies within array
+  if (iStartX<0) {iStartX=0;}				
+  if (iStartY<0) {iStartY=0;}
+  if (iStartZ<0) {iStartZ=0;}
+  if (iEndX>=MATRIXSIZE) {iEndX=MATRIXSIZE-1;}
+  if (iEndY>=MATRIXSIZE) {iEndY=MATRIXSIZE-1;}
+  if (iEndZ>=MATRIXSIZE) {iEndZ=MATRIXSIZE-1;}
+  
+  //mark all occupied cells in matrix
+  for (iX=iStartX; iX<=iEndX; iX++)
+	for (iY=iStartY; iY<=iEndY; iY++)
+	  for (iZ=iStartZ; iZ<=iEndZ; iZ++)
+	    if (fnArrayPosDifferenz(iX,iY,iZ,dPosX,dPosY,dPosZ)<=dVanDerWaalsRadiusPlus) 
+		{
+		  iMatrix[iX][iY][iZ]=1;
+		}
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+
+void fnFillProbeVolume(int iX, int iY, int iZ)
+{
+  int iStartX, iStartY, iStartZ, iEndX, iEndY, iEndZ;
+  int iXl, iYl, iZl, iProbeCollision, iVoidExists;
+  
+  iRecursiveCallCounter++;
+  
+  iStartX=iX-iProbeRadius; //limits of cube surrounding the
+  iStartY=iY-iProbeRadius; //probe sphere
+  iStartZ=iZ-iProbeRadius;
+  iEndX=iX+iProbeRadius;
+  iEndY=iY+iProbeRadius;
+  iEndZ=iZ+iProbeRadius;
+	
+  if (iStartX<0) iStartX=0;   //check if limits are within array 
+  if (iStartY<0) iStartY=0;
+  if (iStartZ<0) iStartZ=0;
+  if (iEndX>=MATRIXSIZE-1) iEndX=MATRIXSIZE-1;
+  if (iEndY>=MATRIXSIZE-1) iEndY=MATRIXSIZE-1;
+  if (iEndZ>=MATRIXSIZE-1) iEndZ=MATRIXSIZE-1;
+	
+  iProbeCollision=0; iVoidExists=0;				//check if sphere around start point is not occupied by protein
+  for (iXl=iStartX; iXl<=iEndX; iXl++)			//or already completely filled with solvent
+	for (iYl=iStartY; iYl<=iEndY; iYl++)
+	  for (iZl=iStartZ; iZl<=iEndZ; iZl++)		//check if bin is within probe sphere
+		if (((double)((iX-iXl)*(iX-iXl)+(iY-iYl)*(iY-iYl)+(iZ-iZl)*(iZ-iZl)))<=((PROBERADIUS/UNITSIZE)*(PROBERADIUS/UNITSIZE))) 
+		{
+		  if (iMatrix[iXl][iYl][iZl]==0) {iVoidExists=1;}
+		  if (iMatrix[iXl][iYl][iZl]==1) {iProbeCollision=1; iXl=iEndX; iYl=iEndY; iZl=iEndZ;}
+		}
+	
+  
+  if ((iProbeCollision==0) && (iVoidExists==1))			//if no protein collision and still empty bins, then fill volume
+  {
+	for (iXl=iStartX; iXl<=iEndX; iXl++)
+	  for (iYl=iStartY; iYl<=iEndY; iYl++)
+		for (iZl=iStartZ; iZl<=iEndZ; iZl++)
+		if (((double)((iX-iXl)*(iX-iXl)+(iY-iYl)*(iY-iYl)+(iZ-iZl)*(iZ-iZl)))<=((PROBERADIUS/UNITSIZE)*(PROBERADIUS/UNITSIZE)))  
+		  {
+			if (iMatrix[iXl][iYl][iZl]==0)						//cell empty?
+			{
+			  iMatrix[iXl][iYl][iZl]=2;							//fill with solvent
+			  iSolventAtomsFilled++;							//monitor overall progress for user
+			  if (iSolventAtomsFilled/10000>iLastFraction)		//print statement every 10000 filled atoms
+			  {
+			    printf("Total volume filled: %lf Percent \n", 
+				(double)(iSolventAtomsFilled)/(MATRIXSIZE*MATRIXSIZE*MATRIXSIZE)*100);
+				iLastFraction++;
+			  } 
+			}
+		  }
+
+
+
+								//recursive calls into all six directions of space
+								//simulating the moving of the probe sphere
+	if ((iX-1)>=0) 
+	{
+	  if (iRecursiveCallCounter<RECURSIVECALLMAX) {fnFillProbeVolume(iX-1,iY,iZ);}
+	  else {iMatrix[iX-1][iY][iZ]=4;}
+	}
+	if ((iY-1)>=0) 
+	{
+	  if (iRecursiveCallCounter<RECURSIVECALLMAX) {fnFillProbeVolume(iX,iY-1,iZ);}
+	  else {iMatrix[iX][iY-1][iZ]=4;}
+	}
+	if ((iZ-1)>=0) 
+	{
+	  if (iRecursiveCallCounter<RECURSIVECALLMAX) {fnFillProbeVolume(iX,iY,iZ-1);}
+	  else {iMatrix[iX][iY][iZ-1]=4;}
+	}
+	if ((iX+1)<MATRIXSIZE) 
+	{
+	  if (iRecursiveCallCounter<RECURSIVECALLMAX) {fnFillProbeVolume(iX+1,iY,iZ);}
+	  else {iMatrix[iX+1][iY][iZ]=4;}
+	}
+	if ((iY+1)<MATRIXSIZE) 
+	{
+	  if (iRecursiveCallCounter<RECURSIVECALLMAX) {fnFillProbeVolume(iX,iY+1,iZ);}
+	  else {iMatrix[iX][iY+1][iZ]=4;}
+	}
+	if ((iZ+1)<MATRIXSIZE) 
+	{
+	  if (iRecursiveCallCounter<RECURSIVECALLMAX) {fnFillProbeVolume(iX,iY,iZ+1);}
+	  else {iMatrix[iX][iY][iZ+1]=4;}
+	}
+  }
+  
+  iRecursiveCallCounter--;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+
+void fnFillSolvent(int iX, int iY, int iZ)
+{
+
+int iNotYetFilled, iXl, iYl, iZl;
+  
+  //fill start cell with solvent
+  iRecursiveCallCounter=0;				//initialize, for limiting recursive calls
+  iSolventAtomsFilled=0;				//initialize, for progress monitoring
+  iLastFraction=0;						//initialize, for progress monitoring
+
+  fnFillProbeVolume(iX,iY,iZ);			//call recursive filling procedure
+  
+  iNotYetFilled=1;						//initialize
+  
+  while (iNotYetFilled==1)				//repeat as long as there are saved starting points
+  {
+    iNotYetFilled=0;					
+    for (iXl=0; iXl<MATRIXSIZE; iXl++)			//search whole matrix
+	  for (iYl=0; iYl<MATRIXSIZE; iYl++)
+	    for (iZl=0; iZl<MATRIXSIZE; iZl++)
+		  {
+		    if (iMatrix[iXl][iYl][iZl]==4)			//saved starting point?
+		    {
+		      iMatrix[iXl][iYl][iZl]=2;				//remove starting point label;
+			  fnFillProbeVolume(iXl,iYl,iZl);		//call recursive procedure with this starting point 
+			  iNotYetFilled=1;						//there might be other startingn points
+		    }
+		  }
+	fnAnalyzeMatrix();								//print intermediate results		  
+  }
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+
+void fnLoadFile(void)
+{
+  int iNumber;
+  char cAtomType[2];
+  char cString[80], cAtomName[5];
+  double dDouble;
+  double dPosX, dPosY, dPosZ;
+  
+  FILE *fp;
+  fp=fopen(filename,"r");
+  
+  if(fp==NULL) {
+  printf("Error: can't open file.\n");}
+
+
+  while(!feof(fp)) {
+	  fscanf(fp, "%6s", cString);
+	  if (strcmp (cString,"ATOM") == 0)
+	  {
+	  
+	  fscanf(fp,"%5i %4s %3s %1s %i %lf %lf %lf %lf %lf %s", 
+	     &iNumber, cAtomName, cString, cString, &iNumber, &dPosX, &dPosY, &dPosZ, &dDouble, &dDouble, cAtomType); //reading information
+	  
+	  
+	  fnFillVanDerWaals(dPosX, dPosY, dPosZ, cAtomName);  //filling volume
+	  }
+    }
+
+  fclose(fp);
+
+};
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+
+int fnDetermineLimits(void)  //determining coordinate extrema and checking if array size is sufficient
+{
+  int iNumber;
+  char cString[80];
+  double dDouble;
+  double dPosX, dPosY, dPosZ;
+  int iFirstRead;
+  
+  iFirstRead=0;
+  
+  FILE *fp;
+  fp=fopen(filename,"r");
+  
+  if(fp==NULL) {
+  printf("Error: can't open file.\n");}
+
+
+  while(!feof(fp)) {
+ 	  fscanf(fp, "%6s", cString);
+	  if (strcmp (cString,"ATOM") == 0)
+	  {
+	  
+	  fscanf(fp,"%5i %4s %3s %1s %i %lf %lf %lf %lf %lf %s", 
+	     &iNumber, cString, cString, cString, &iNumber, &dPosX, &dPosY, &dPosZ, &dDouble, &dDouble, cString); //reading information
+		 
+																			//first read coordinate sets initial limits
+	  if (iFirstRead==0) {dPosXMin=dPosX; dPosXMax=dPosX; dPosYMin=dPosY; dPosYMax=dPosY; dPosZMin=dPosZ; dPosZMax=dPosZ; iFirstRead=1;}
+	  	  
+	  if (dPosX<dPosXMin) dPosXMin=dPosX;		//Do new coordinates extend limits?
+	  if (dPosY<dPosYMin) dPosYMin=dPosY;
+	  if (dPosZ<dPosZMin) dPosZMin=dPosZ;
+	  if (dPosX>dPosXMax) dPosXMax=dPosX;
+      if (dPosY>dPosYMax) dPosYMax=dPosY;
+      if (dPosZ>dPosZMax) dPosZMax=dPosZ;
+	  }
+    }
+
+  fclose(fp);
+
+  printf("Size limits  \n xmin, xmax: %lf %lf \n ymin, ymax: %lf %lf \n zmin, zmax:  %lf %lf \n\n", 
+	          dPosXMin, dPosXMax, dPosYMin, dPosYMax, dPosZMin, dPosZMax);
+			  
+  if (((dPosXMax-dPosXMin+2*iProbeFrame)>MATRIXSIZE*UNITSIZE) || 
+      ((dPosYMax-dPosYMin+2*iProbeFrame)>MATRIXSIZE*UNITSIZE) || 
+	  ((dPosZMax-dPosZMin+2*iProbeFrame)>MATRIXSIZE*UNITSIZE))
+  {
+    printf("Matrix size too small. Change parameter MATRIXSIZE");
+	return 1;
+  }
+
+  return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+void fnWriteVolumeSliced(void)	//write out results
+{
+  int iX, iY, iZ, iProteinCounter, iSolventCounter, iVoidCounter;
+  
+  FILE *fp;
+  fp=fopen(FilenameWrite,"w");
+  
+  if(fp==NULL) {
+  printf("Error: can't write file.\n");}
+  
+  printf("Volumes written to file in Volume per delta z. This equals an area (of each slab). \n");
+  printf("The solvent excluded volume in the output file contains the void volume and the protein volume \n");
+
+  fprintf(fp, "z-position   solvent excluded volume  solvent volume \n \n");
+  for(iZ=iProbeFrame; iZ<(MATRIXSIZE-iProbeFrame); iZ++)		
+  {	
+    iProteinCounter=0; iSolventCounter=0; iVoidCounter=0;
+    for(iY=0; iY<MATRIXSIZE; iY++)
+	  for(iX=0; iX<MATRIXSIZE; iX++) 
+	  {
+	    switch(iMatrix[iX][iY][iZ])
+		{
+		  case 0: iVoidCounter++; break;
+		  case 1: iProteinCounter++; break;
+		  case 2: iSolventCounter++; break;
+		}
+	  }
+	fprintf(fp, "%lf %lf %lf \n", (double)iZ*UNITSIZE, (double)(iProteinCounter+iVoidCounter)*UNITSIZE*UNITSIZE,
+											(double)iSolventCounter*UNITSIZE*UNITSIZE);
+  }
+
+
+  fclose(fp);
+
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+
+int main (int argc, const char * argv[]) {
+
+  int iX, iY, iZ;
+
+  for(iX=0; iX<MATRIXSIZE; iX++)			//initialize array
+    for(iY=0; iY<MATRIXSIZE; iY++)
+	  for(iZ=0; iZ<MATRIXSIZE; iZ++) {
+	    iMatrix[iX][iY][iZ]=0;}
+		
+  iProbeRadius=floor(PROBERADIUS/UNITSIZE+0.5);			//integer probe radius used for distance comparisons on the grid 
+  iProbeFrame=ceil(PROBERADIUS/UNITSIZE)+1;				//the number of bins the grid is extended in each of the six directions
+														//in order to have a complete solvation shell around the pdb structure.
+														//this extension (frame) must have at least the size of half a solvent 
+														//molecule 
+
+  if (fnDetermineLimits()==1) {return 0;}				//check file and choosen array size
+  
+  printf("Loading file and occupying matrix ...\n\n");
+  fnLoadFile();											//load file and occupy array
+  fnAnalyzeMatrix();									//print intermediate results		  
+  
+  printf("Filling solvent volume ...\n\n");			
+  fnFillSolvent(0,0,0);									//fill solvent volume
+  fnAnalyzeMatrix();									//print intermediate results		  
+   
+  printf("Writing Output ...\n\n");						//write output file
+  fnWriteVolumeSliced();
+
+  return 0;
+}
