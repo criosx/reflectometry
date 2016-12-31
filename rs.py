@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Reflscript for ga_refl 9-Dec-2010 F.H.
-# Modified 19-Feb-2016 F.H.
+# Modified 30-Dec-2016 F.H.
 
 #issues: ISIS data files cannot contain headerline without specifier as they normally do, this will
 #        lead to MC not starting up
@@ -2281,21 +2281,27 @@ class CReflectometry:
 
     #-------------------------------------------------------------------------------
 
-    def fnRecreateStatistical(self, bRecreateMolgroups=True, sparse=0):  #Recreates profile and fit data
-        #associated with stat file
+    def fnRecreateStatistical(self, bRecreateMolgroups=True, sparse=0):
+
+        #Recreates profile and fit data associated with stat file
+
+        from refl1d import garefl
+        import matplotlib.pyplot as plt
+        from sys import stdout
 
         self.fnLoadParameters()  #Load Parameters into self.diParameters
         self.fnLoadStatData(sparse)  #Load Results from statistical analysis
         iNumberOfModels = self.fnGetNumberOfModelsFromSetupC()  #how many profiles to analyze?
+        self.fnMake()
+
+        problem = garefl.load('model.so')
         j = 0
         self.diStatResults['nSLDProfiles'] = []  #delete list of all nSLD profiles
         self.diStatResults['Molgroups'] = []  #delete list of all molecular groups
 
         for iteration in range(self.diStatResults['NumberOfStatValues']):  #cycle through all individual stat. results
             try:
-                self.fnBackup()  #Backup setup.c, and other files
-                self.diStatResults['nSLDProfiles'].append([])  #appends a new list for profiles for the
-                #current MC iteration
+                self.diStatResults['nSLDProfiles'].append([])  #appends a new list for profiles for the current MC iteration
                 liParameters = self.diParameters.keys()  #get list of parameters from setup.c/par.dat
                 liParameters.sort(self.fndiParametersNumberSort)  #sort by number of appereance in setup.c
                 bConsistency = True
@@ -2303,54 +2309,49 @@ class CReflectometry:
                     if element not in self.diStatResults['Parameters'].keys():
                         bConsistency = False
                 if bConsistency:  #check for consistency
-                    liAddition = []
-                    for parameter in liParameters:  #cycle through all parameters
-                        liAddition.append(('%s = %s;\n' %  #change setup.c to quasi fix all parameters
-                                           (self.diParameters[parameter]['variable'],
-                                            #to the result of the stat. analysis
-                                            self.diStatResults['Parameters'][parameter]['Values'][iteration])))
-                    self.fnWriteConstraint2SetupC(liAddition)  #write out
-                    #raw_input("Please enter ...")
-                    self.fnMake()  #compile changed setup.c
-                    print 'Processing parameter set %i.\n \n' % (j)
-                    self.fnWriteOutGareflModel()  #write out profile.dat and fit.dat
+                    print 'Processing parameter set %i.\n' % (j)
+                    p = []
+                    for parameter in liParameters:
+                        val = self.diStatResults['Parameters'][parameter]['Values'][iteration]
+                        #print parameter, val
+                        if 'rho_' in parameter or 'background' in parameter:
+                            val *= 1E6
+                        p.append(val)
+                    #print p
+                    problem.setp(p)
+                    print problem.chisq()
+                    for M in problem.models:
+                        z,rho,irho=M.fitness.smooth_profile()
+#                        plt.plot(z,rho)
+#                        M.model_update()
+#                        M.fitness.update()
+                        self.diStatResults['nSLDProfiles'][-1].append((z,rho))
+#                        print self.diStatResults['Parameters']['rho_solv_0']['Values'][iteration], rho[0], M.chisq()
+                        print M.chisq()
+#                        print M.fitness._get_penalty()
+#                        print p, pi
+#                        models = [M for M in problem.models]
 
-                    i = 0  #store profile data in liContourProfile
-                    while i < iNumberOfModels:
-                        self.diStatResults['nSLDProfiles'][-1].append(([], []))  #adding another profile for the model
-                        sFileName = 'profile' + str(i) + '.dat'  #Load profile#.dat
-                        File = open(sFileName)
-                        data = File.readlines()
-                        File.close()
-                        data = data[1:]  #delete header
-
-                        for line in data:  #extract nSLD profile data line by line
-                            splitline = line.split()
-                            dz = float(splitline[0])
-                            drho = float(splitline[1])
-                            self.diStatResults['nSLDProfiles'][-1][-1][0].append(dz)
-                            self.diStatResults['nSLDProfiles'][-1][-1][1].append(drho)
-                        i += 1
+#                        print self.diStatResults['nSLDProfiles'][-1][-1][0],problem.models[i].fitness.slabs()[0]
+#                        print liParameters
+#                        print models[0].fitness.slabs()[0]
+#                        print hstack((self.diStatResults['nSLDProfiles'][-1][-1][1],models[i-1].fitness.slabs()[2]))
+#                    print self.diStatResults['nSLDProfiles']
+#                    plt.show()
+                    stdout.flush()
 
                     if bRecreateMolgroups:
-                        call(["./fit", "-o"])  #write out mol.dat
+			            problem.active_model.fitness.output_model()
                         self.fnLoadMolgroups()  #populate self.diMolgroups
                         self.diStatResults['Molgroups'].append(
                             self.diMolgroups)  #append molgroup information to self.diStatResults
-
-
                 else:
                     print 'Statistical error data and setup file do not match'
-                    self.fnRemoveBackup()
                     raise ''
-
-
             finally:
-                self.fnRemoveBackup()
                 j += 1
 
         self.fnSaveObject(self.diStatResults, 'StatDataPython.dat')  #save stat data to disk
-
 
     #-------------------------------------------------------------------------------
 
