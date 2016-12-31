@@ -2341,7 +2341,7 @@ class CReflectometry:
                     stdout.flush()
 
                     if bRecreateMolgroups:
-			            problem.active_model.fitness.output_model()
+			problem.active_model.fitness.output_model()
                         self.fnLoadMolgroups()  #populate self.diMolgroups
                         self.diStatResults['Molgroups'].append(
                             self.diMolgroups)  #append molgroup information to self.diStatResults
