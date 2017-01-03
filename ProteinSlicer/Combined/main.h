@@ -36,8 +36,8 @@
 
 char strPath[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/4G0N_RAS_RBD_complex/";
 char strFileNameRoot[20]="protein";
-char filename[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/4G0N_RBD.pdb";
-char FilenameWrite[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/4G0N_RBD.txt";
+char filename[250]="/Users/frank/Documents/projects/proteins/antibody/Cavan/structure_modeling/protein.pdb";
+char FilenameWrite[250]="/Users/frank/Documents/projects/proteins/antibody/Cavan/structure_modeling/protein.txt";
 
 // volume matrix starts from 0 positon to matrix -> ceil(pos/unit)
 // value description:
