@@ -566,7 +566,7 @@ def fnConvolute(fSigma=2.5):
     exceptionprocessing=["z"]
 
     data={}
-    for i in range(0,1855,5):
+    for i in range(0,185,5):
         for j in range(0,360,5):
 
             filename="protein_tilt"
