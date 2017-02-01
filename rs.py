@@ -20,6 +20,7 @@ from subprocess import call, Popen
 from time import time, gmtime, sleep, ctime
 import zipfile
 import numpy
+import pandas
 
 
 class CDataInteractor():
@@ -325,7 +326,8 @@ class CReflectometry:
         """
 
         """
-        self.diParameters = {}  #Dictionary with all the parameters
+        self.diParameters = {}
+        # Dictionary with all the parameters
         # self.diParameters data structure:
         # dictionary: sparameter : dictionary
         #                          'number'    : int                                # order of initialization in ga_refl
@@ -336,7 +338,8 @@ class CReflectometry:
         #                          'relval' : float                                 # relative data value between 0 and 1 in terms of the constraints
         #                          'variable: string                                # associated ga_refl variable
         self.diMolgroups = {}
-        self.diStatResults = {}  # dictionary of statistical results for various routines
+        self.diStatResults = {}
+        # dictionary of statistical results for various routines
         # from fnAnalyzeStatFile
         #   'Parameters' key contains dictionary
         #       parameter names are keys contain dictionary
@@ -544,7 +547,7 @@ class CReflectometry:
             print 'Loaded statistical data from StatDataPython.dat'
 
         except IOError:
-            print 'Failure to calculate values from StatDataPython.dat.'
+            print 'Failure to load StatDataPython.dat.'
             print 'Recreate statistical data from sErr.dat.'
             self.fnRecreateStatistical()
 
@@ -572,7 +575,7 @@ class CReflectometry:
 
                 #                for j in range(len(mgdict[sMolgroup]['areaaxis'])):
                 #                    if mgdict[sMolgroup]['areaaxis'][j]:
-                #                        fCOM=fCOM-mgdict[sMolgroup]['zaxis'][j]                                                         #normalize COM to start of molecular group
+                #                        fCOM=fCOM-mgdict[sMolgroup]['zaxis'][j]     #normalize COM to start of molecular group
                 #                        break
 
                 fAvg = average(mgdict[sMolgroup]['areaaxis'])
@@ -1374,10 +1377,10 @@ class CReflectometry:
 
             #-------------------------------------------------------------------------------
 
-    def fnLoadFileListAndChangeToLocal(self):  #scans the setup.c file and creates a
-        File = open(self.setupfilename, "r")  #list of the filenames
-        data = File.readlines()  #of the reflectivity data files, it also
-        File.close()  #modifies setup.c in this way that it
+    def fnLoadFileListAndChangeToLocal(self):                                               #scans the setup.c file and creates a
+        File = open(self.setupfilename, "r")                                                #list of the filenames
+        data = File.readlines()                                                             #of the reflectivity data files, it also
+        File.close()                                                                        #modifies setup.c in this way that it
         #loads copies of reflectivity dat files
         #located in the working directory with the
         #file ending .mce, those files are the
@@ -1619,13 +1622,12 @@ class CReflectometry:
 
     #-------------------------------------------------------------------------------
 
-    def fnMake(self):  #make setup.c and print sys output
-        pr = Popen(["rm", "-f", "setup.o"])
-        pr.wait()
-        pr = Popen(["rm", "-f", "fit"])
-        pr.wait()
-        pr = Popen(["make"])
-        pr.wait()
+    def fnMake(self):
+    #make setup.c and print sys output
+        call(["rm", "-f", "setup.o"])
+        call(["sync"])  #synchronize file system
+        sleep(1)  #wait for system to clean up
+        call(["make"])
 
         #-------------------------------------------------------------------------------
 
@@ -1879,10 +1881,7 @@ class CReflectometry:
                 liAddition.append(('%s = %s;\n' %  #change setup.c to quasi fix all parameters
                                    (self.diParameters[parameter]['variable'], self.diParameters[parameter]['value'])))
             self.fnWriteConstraint2SetupC(liAddition)  #write out
-            call(["rm", "-f", "setup.o"])
             call(["rm", "-f", "mol.dat"])
-            call(["sync"])  #synchronize file system
-            sleep(1)  #wait for system to clean up
             self.fnMake()  #compile changed setup.c
             call(["./fit", "-o"])  #write out profile.dat and fit.dat
             call(["sync"])  #synchronize file system
@@ -2341,10 +2340,9 @@ class CReflectometry:
                     stdout.flush()
 
                     if bRecreateMolgroups:
-			problem.active_model.fitness.output_model()
-                        self.fnLoadMolgroups()  #populate self.diMolgroups
-                        self.diStatResults['Molgroups'].append(
-                            self.diMolgroups)  #append molgroup information to self.diStatResults
+                        problem.active_model.fitness.output_model()
+                        self.fnLoadMolgroups()
+                        self.diStatResults['Molgroups'].append(self.diMolgroups)  #append molgroup information to self.diStatResults
                 else:
                     print 'Statistical error data and setup file do not match'
                     raise ''
@@ -2434,6 +2432,79 @@ class CReflectometry:
 
 
     #-------------------------------------------------------------------------------
+    def fnSimulateReflectivity(self, qmin=0.008, qmax=0.325, s1min=0.108, s1max=4.397, s2min=0.108, s2max=4.397, tmin=18, tmax=208, nmin=11809, rhomin=-0.56e-6, rhomax=6.34e-6, cbmatmin=2.0e-5, cbmatmax=4.5e-6):
+    #simulates reflectivity based on a parameter file called simpar.dat
+    #requires a compiled and ready to go fit whose fit parameters are modified and fixed
+
+        self.fnLoadParameters(sPath)  #Load Parameters and modify setup.cc
+        self.fnBackup()  #Backup setup.c, and other files
+        try:
+            liParameters = self.diParameters.keys()  #get list of parameters from setup.c/par.dat
+            liParameters.sort(self.fndiParametersNumberSort)  #sort by number of appereance in setup.c
+            simpar = pandas.read_csv('simpar.dat', sep=' ', header=None, names=['par', 'value'], skip_blank_lines=True, comment='#')
+
+            liAddition = []
+            for parameter in liParameters:  #cycle through all parameters
+                parvalue=simpar[simpar.par==parameter].iloc[0][1]
+                strchange=''
+                parvaluefinal=parvalue
+                if (('rho' in parameter) or ('background' in parameter)) and fabs(parvalue)>1E-4:
+                    parvaluefinal = parvalue * 1E-6
+                    strchange=' => changed to '+str(parvaluefinal)
+
+                print(str(parameter)+' '+str(parvalue)+strchange)
+
+                liAddition.append(('%s = %s;\n' %  #change setup.c to quasi fix all parameters
+                                   (self.diParameters[parameter]['variable'], parvaluefinal)))
+            self.fnWriteConstraint2SetupC(liAddition)  #write out
+            self.fnMake()  #compile changed setup.c
+            call(["rm", "-f", "mol.dat"])
+            call(["./fit", "-o"])  #write out profile.dat and fit.dat
+            call(["sync"])  #synchronize file system
+            sleep(1)  #wait for system to clean up
+            i=0
+            while path.isfile('fit'+str(i)+'.dat'):
+                simdata=pandas.read_csv('fit'+str(i)+'.dat', sep=' ', header=None, names=['Q', 'dQ', 'R', 'dR', 'fit'], skip_blank_lines=True, comment='#')
+                simdata.to_csv('sim'+str(i)+'.dat', sep=' ', header=True, index=None, columns=['Q', 'fit'])
+                i+=1
+        finally:
+            self.fnRemoveBackup()
+
+        #add error bars
+        i=0
+        while path.isfile('fit'+str(i)+'.dat'):
+
+            #calculate all constants necessary for error bars
+            #see information theory manuscript for details
+
+            c1=s1max/qmax
+            c2=s2max/qmax
+            c4=(tmax-tmin)/(qmax**2-qmin**2)
+            c3=tmax-c4*qmax**2
+            I=nmin/s1min/s2min/tmin
+            cbmat=(simpar[simpar.par==('rho_solv_'+str(i))].iloc[0][1]-rhomin)/(rhomax-rhomin)*(cbmatmax-cbmatmin)+cbmatmin
+
+            simdata=pandas.read_csv('sim'+str(i)+'.dat', sep=' ', skip_blank_lines=True, comment='#')
+
+            simdata['dR']=0.0
+            simdata.columns=['Q', 'R', 'dR']
+
+            for index in simdata.index:
+                ns=I*simdata.iloc[index,1]*c1*c2*(simdata.iloc[index,0])**2*(c3+c4*(simdata.iloc[index,0])**2)
+                nb=I*cbmat*c1*c2*(simdata.iloc[index,0])**2*(c3+c4*(simdata.iloc[index,0])**2)
+                dRoR=sqrt(ns+2*nb)/(ns)
+                dR=simdata.iloc[index,1]*dRoR                                             #see manuscript for details on calculation
+                simdata.iat[index,2]=dR
+                simdata.iat[index,1]=simdata.iloc[index,1]+normalvariate(0, 1) * dR       #modify reflectivity within error bars
+                #print index,ns,nb,dRoR,dR,simdata.iloc[index,2]
+
+            simdata.to_csv('sim'+str(i)+'.dat', sep=' ', index=None,)
+
+            i+=1
+
+
+    #-------------------------------------------------------------------------------
+
 
     def fnStatTable(self, sTableName, fConfidence):
 
@@ -2526,7 +2597,8 @@ class CReflectometry:
 
             #-------------------------------------------------------------------------------
 
-    def fnWriteConstraint2SetupC(self, liExpression):  #Writes a list of expressions at the beginning of
+    def fnWriteConstraint2SetupC(self, liExpression):
+        #Writes a list of expressions at the beginning of
         #the constraint section in setup.c
         File = open(self.setupfilename, "r")  #open setup.c
         data = File.readlines()
@@ -3088,7 +3160,7 @@ def fMCMC(iMaxIterations=1024000, liMolgroups=['protein'], fSparse=0):
                 #if not bMCMCexists:                                                         #run best fit
                 #Auto()
 
-        lCommand = ['refl1d', 'run.py', '--fit=dream', '--parallel']
+        lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel']
         if bMCMCexists:
             if iBurn >= iMaxIterations:
                 print 'Maximum number of MCMC iterations reached\n'
@@ -3767,6 +3839,8 @@ if __name__ == '__main__':
                 liMolgroups = argv[i + 1:]
             elif argv[i] == '-r':
                 bResult = True
+            elif argv[i] == '-sim':
+                ReflPar.fnSimulateReflectivity()
             elif argv[i] == '-stat':
                 iSummarizeStatistic = 1
             elif argv[i] == '-stattable':
