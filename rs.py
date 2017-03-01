@@ -551,6 +551,28 @@ class CReflectometry:
             print 'Recreate statistical data from sErr.dat.'
             self.fnRecreateStatistical()
 
+
+        #Try to import any fractional protein profiles stored in envelopefrac1/2.dat
+        #after such an analysis has been done manually
+        try:
+            pdfFrac1=pandas.read_csv('envelopefrac1.dat', sep=' ')
+            pdfFrac2=pandas.read_csv('envelopefrac2.dat', sep=' ')
+
+            for i in range(len(self.diStatResults['Molgroups'])):
+                striter='iter'+str(i)
+                self.diStatResults['Molgroups'][i]['frac1']={}
+                self.diStatResults['Molgroups'][i]['frac2']={}
+                self.diStatResults['Molgroups'][i]['frac1']['zaxis']=pdfFrac1['zaxis'].tolist()
+                self.diStatResults['Molgroups'][i]['frac1']['areaaxis']=pdfFrac1[striter].tolist()
+                self.diStatResults['Molgroups'][i]['frac2']['zaxis']=pdfFrac2['zaxis'].tolist()
+                self.diStatResults['Molgroups'][i]['frac2']['areaaxis']=pdfFrac2[striter].tolist()
+
+        except IOError:
+            print 'Did not find any fractional envelopes ...'
+
+
+
+
         diResults = {}
         sMolgroups = self.diStatResults['Molgroups'][0].keys()
         for sMolgroup in sMolgroups:  #create results for individual molgroups
@@ -2465,42 +2487,37 @@ class CReflectometry:
             i=0
             while path.isfile('fit'+str(i)+'.dat'):
                 simdata=pandas.read_csv('fit'+str(i)+'.dat', sep=' ', header=None, names=['Q', 'dQ', 'R', 'dR', 'fit'], skip_blank_lines=True, comment='#')
-                simdata.to_csv('sim'+str(i)+'.dat', sep=' ', header=True, index=None, columns=['Q', 'fit'])
+
+                #add error bars
+                c1=s1max/qmax
+                c2=s2max/qmax
+                c4=(tmax-tmin)/(qmax**2-qmin**2)
+                c3=tmax-c4*qmax**2
+                I=nmin/s1min/s2min/tmin
+                rhosolv=simpar[simpar.par==('rho_solv_'+str(i))].iloc[0][1]
+                if fabs(rhosolv)>1E-4:
+                    rhosolv=rhosolv*1E-6
+
+                cbmat=(rhosolv-rhomin)/(rhomax-rhomin)*(cbmatmax-cbmatmin)+cbmatmin
+
+                simdata=pandas.read_csv('sim'+str(i)+'.dat', sep=' ', skip_blank_lines=True, comment='#')
+                simdata['dR']=0.0
+                simdata.columns=['Q', 'R', 'dR']
+
+                for index in simdata.index:
+                    ns=I*simdata.iloc[index,1]*c1*c2*(simdata.iloc[index,0])**2*(c3+c4*(simdata.iloc[index,0])**2)
+                    nb=I*cbmat*c1*c2*(simdata.iloc[index,0])**2*(c3+c4*(simdata.iloc[index,0])**2)
+                    dRoR=sqrt(ns+2*nb)/(ns)
+                    dR=simdata.iloc[index,1]*dRoR                                             #see manuscript for details on calculation
+                    simdata.iat[index,2]=dR
+                    simdata.iat[index,1]=simdata.iloc[index,1]+normalvariate(0, 1) * dR       #modify reflectivity within error bars
+                    #print index,ns,nb,dRoR,dR,simdata.iloc[index,2]
+
+                simdata.to_csv('sim'+str(i)+'.dat', sep=' ', index=None)
+
                 i+=1
         finally:
             self.fnRemoveBackup()
-
-        #add error bars
-        i=0
-        while path.isfile('fit'+str(i)+'.dat'):
-
-            #calculate all constants necessary for error bars
-            #see information theory manuscript for details
-
-            c1=s1max/qmax
-            c2=s2max/qmax
-            c4=(tmax-tmin)/(qmax**2-qmin**2)
-            c3=tmax-c4*qmax**2
-            I=nmin/s1min/s2min/tmin
-            cbmat=(simpar[simpar.par==('rho_solv_'+str(i))].iloc[0][1]-rhomin)/(rhomax-rhomin)*(cbmatmax-cbmatmin)+cbmatmin
-
-            simdata=pandas.read_csv('sim'+str(i)+'.dat', sep=' ', skip_blank_lines=True, comment='#')
-
-            simdata['dR']=0.0
-            simdata.columns=['Q', 'R', 'dR']
-
-            for index in simdata.index:
-                ns=I*simdata.iloc[index,1]*c1*c2*(simdata.iloc[index,0])**2*(c3+c4*(simdata.iloc[index,0])**2)
-                nb=I*cbmat*c1*c2*(simdata.iloc[index,0])**2*(c3+c4*(simdata.iloc[index,0])**2)
-                dRoR=sqrt(ns+2*nb)/(ns)
-                dR=simdata.iloc[index,1]*dRoR                                             #see manuscript for details on calculation
-                simdata.iat[index,2]=dR
-                simdata.iat[index,1]=simdata.iloc[index,1]+normalvariate(0, 1) * dR       #modify reflectivity within error bars
-                #print index,ns,nb,dRoR,dR,simdata.iloc[index,2]
-
-            simdata.to_csv('sim'+str(i)+'.dat', sep=' ', index=None,)
-
-            i+=1
 
 
     #-------------------------------------------------------------------------------
