@@ -720,6 +720,99 @@ class CReflectometry:
                 #print(str(iStartHC)+' '+str(iStartHG2)+' '+str(iStartBulk)+'\n')
 
                 #output
+
+            if 'frac1' in sMolgroups:
+                fStartHG1 = float(mgdict['headgroup1']['headerdata']['z'])-0.5*float(mgdict['headgroup1']['headerdata']['l'])
+                fStartHC  = float(mgdict['lipid1']['headerdata']['z'])-0.5*float(mgdict['lipid1']['headerdata']['l'])
+                fStartMethyl2  = float(mgdict['methyl2']['headerdata']['z'])-0.5*float(mgdict['methyl2']['headerdata']['l'])
+                fStartHG2 = float(mgdict['headgroup2']['headerdata']['z'])-0.5*float(mgdict['headgroup2']['headerdata']['l'])
+                fStartbulk = float(mgdict['headgroup2']['headerdata']['z'])+0.5*float(mgdict['headgroup2']['headerdata']['l'])
+
+                fStepSize=mgdict['frac1']['zaxis'][1] - mgdict['frac1']['zaxis'][0]
+
+                iStartHG1=int(floor(fStartHG1/fStepSize+0.5))
+                iStartHC=int(floor(fStartHC/fStepSize+0.5))
+                iStartMethyl2=int(floor(fStartMethyl2/fStepSize+0.5))
+                iStartHG2=int(floor(fStartHG2/fStepSize+0.5))
+                iStartBulk=int(floor(fStartbulk/fStepSize+0.5))
+
+                fFracSubmembrane=sum(mgdict['frac1']['areaaxis'][0:iStartHC])/sum(mgdict['frac1']['areaaxis'])
+                fFracInnerHeadgroup=sum(mgdict['frac1']['areaaxis'][iStartHG1:iStartHC])/sum(mgdict['frac1']['areaaxis'])
+                fFracInnerHydrocarbon=sum(mgdict['frac1']['areaaxis'][iStartHC:iStartMethyl2])/sum(mgdict['frac1']['areaaxis'])
+                fFracOuterHydrocarbon=sum(mgdict['frac1']['areaaxis'][iStartMethyl2:iStartHG2])/sum(mgdict['frac1']['areaaxis'])
+                fFracHydrocarbon=sum(mgdict['frac1']['areaaxis'][iStartHC:iStartHG2])/sum(mgdict['frac1']['areaaxis'])
+                fFracOuterHeadgroup=sum(mgdict['frac1']['areaaxis'][iStartHG2:iStartBulk])/sum(mgdict['frac1']['areaaxis'])
+                fFracBulk=sum(mgdict['frac1']['areaaxis'][iStartBulk:])/sum(mgdict['frac1']['areaaxis'])
+
+                if not 'fFracSubmembranefrac1' in diResults.keys():
+                    diResults['fFracSubmembranefrac1'] = []
+                diResults['fFracSubmembranefrac1'].append(fFracSubmembrane)
+                if not 'fFracHydrocarbonfrac1' in diResults.keys():
+                    diResults['fFracHydrocarbonfrac1'] = []
+                diResults['fFracHydrocarbonfrac1'].append(fFracHydrocarbon)
+                if not 'fFracInnerHydrocarbonfrac1' in diResults.keys():
+                    diResults['fFracInnerHydrocarbonfrac1'] = []
+                diResults['fFracInnerHydrocarbonfrac1'].append(fFracInnerHydrocarbon)
+                if not 'fFracOuterHydrocarbonfrac1' in diResults.keys():
+                    diResults['fFracOuterHydrocarbonfrac1'] = []
+                diResults['fFracOuterHydrocarbonfrac1'].append(fFracOuterHydrocarbon)
+                if not 'fFracInnerHeadgroupfrac1' in diResults.keys():
+                    diResults['fFracInnerHeadgroupfrac1'] = []
+                diResults['fFracInnerHeadgroupfrac1'].append(fFracInnerHeadgroup)
+                if not 'fFracOuterHeadgroupfrac1' in diResults.keys():
+                    diResults['fFracOuterHeadgroupfrac1'] = []
+                diResults['fFracOuterHeadgroupfrac1'].append(fFracOuterHeadgroup)
+                if not 'fFracBulkfrac1' in diResults.keys():
+                    diResults['fFracBulkfrac1'] = []
+                diResults['fFracBulkfrac1'].append(fFracBulk)
+
+            if 'frac2' in sMolgroups:
+                fStartHG1 = float(mgdict['headgroup1']['headerdata']['z'])-0.5*float(mgdict['headgroup1']['headerdata']['l'])
+                fStartHC  = float(mgdict['lipid1']['headerdata']['z'])-0.5*float(mgdict['lipid1']['headerdata']['l'])
+                fStartMethyl2  = float(mgdict['methyl2']['headerdata']['z'])-0.5*float(mgdict['methyl2']['headerdata']['l'])
+                fStartHG2 = float(mgdict['headgroup2']['headerdata']['z'])-0.5*float(mgdict['headgroup2']['headerdata']['l'])
+                fStartbulk = float(mgdict['headgroup2']['headerdata']['z'])+0.5*float(mgdict['headgroup2']['headerdata']['l'])
+
+                fStepSize=mgdict['frac2']['zaxis'][1] - mgdict['frac2']['zaxis'][0]
+
+                iStartHG1=int(floor(fStartHG1/fStepSize+0.5))
+                iStartHC=int(floor(fStartHC/fStepSize+0.5))
+                iStartMethyl2=int(floor(fStartMethyl2/fStepSize+0.5))
+                iStartHG2=int(floor(fStartHG2/fStepSize+0.5))
+                iStartBulk=int(floor(fStartbulk/fStepSize+0.5))
+
+                fFracSubmembrane=sum(mgdict['frac2']['areaaxis'][0:iStartHC])/sum(mgdict['frac2']['areaaxis'])
+                fFracInnerHeadgroup=sum(mgdict['frac2']['areaaxis'][iStartHG1:iStartHC])/sum(mgdict['frac2']['areaaxis'])
+                fFracInnerHydrocarbon=sum(mgdict['frac2']['areaaxis'][iStartHC:iStartMethyl2])/sum(mgdict['frac2']['areaaxis'])
+                fFracOuterHydrocarbon=sum(mgdict['frac2']['areaaxis'][iStartMethyl2:iStartHG2])/sum(mgdict['frac2']['areaaxis'])
+                fFracHydrocarbon=sum(mgdict['frac2']['areaaxis'][iStartHC:iStartHG2])/sum(mgdict['frac2']['areaaxis'])
+                fFracOuterHeadgroup=sum(mgdict['frac2']['areaaxis'][iStartHG2:iStartBulk])/sum(mgdict['frac2']['areaaxis'])
+                fFracBulk=sum(mgdict['frac2']['areaaxis'][iStartBulk:])/sum(mgdict['frac2']['areaaxis'])
+
+                if not 'fFracSubmembranefrac2' in diResults.keys():
+                    diResults['fFracSubmembranefrac2'] = []
+                diResults['fFracSubmembranefrac2'].append(fFracSubmembrane)
+                if not 'fFracHydrocarbonfrac2' in diResults.keys():
+                    diResults['fFracHydrocarbonfrac2'] = []
+                diResults['fFracHydrocarbonfrac2'].append(fFracHydrocarbon)
+                if not 'fFracInnerHydrocarbonfrac2' in diResults.keys():
+                    diResults['fFracInnerHydrocarbonfrac2'] = []
+                diResults['fFracInnerHydrocarbonfrac2'].append(fFracInnerHydrocarbon)
+                if not 'fFracOuterHydrocarbonfrac2' in diResults.keys():
+                    diResults['fFracOuterHydrocarbonfrac2'] = []
+                diResults['fFracOuterHydrocarbonfrac2'].append(fFracOuterHydrocarbon)
+                if not 'fFracInnerHeadgroupfrac2' in diResults.keys():
+                    diResults['fFracInnerHeadgroupfrac2'] = []
+                diResults['fFracInnerHeadgroupfrac2'].append(fFracInnerHeadgroup)
+                if not 'fFracOuterHeadgroupfrac2' in diResults.keys():
+                    diResults['fFracOuterHeadgroupfrac2'] = []
+                diResults['fFracOuterHeadgroupfrac2'].append(fFracOuterHeadgroup)
+                if not 'fFracBulkfrac2' in diResults.keys():
+                    diResults['fFracBulkfrac2'] = []
+                diResults['fFracBulkfrac2'].append(fFracBulk)
+
+
+
         if fConfidence > 1:
             fConfidence = 1
         if fConfidence < 0:
@@ -2470,10 +2563,14 @@ class CReflectometry:
                 parvalue=simpar[simpar.par==parameter].iloc[0][1]
                 strchange=''
                 parvaluefinal=parvalue
-                if (('rho' in parameter) or ('background' in parameter)) and fabs(parvalue)>1E-4:
+                if ('rho' in parameter) and fabs(parvalue)>1E-4:
                     parvaluefinal = parvalue * 1E-6
                     strchange=' => changed to '+str(parvaluefinal)
-
+                elif ('background' in parameter) and parvalue>1E-4:                       #The issue with the background is two different uses
+                    parvaluefinal = parvalue * 1E-6                                       #some setup.cc use negative numbers as parameter values and then
+                    strchange=' => changed to '+str(parvaluefinal)                        #compute background=10^value, others use positive values and then
+                                                                                          #compute background=value *1E-6
+                                                                                          #this should catch it all
                 print(str(parameter)+' '+str(parvalue)+strchange)
 
                 liAddition.append(('%s = %s;\n' %  #change setup.c to quasi fix all parameters
@@ -2487,6 +2584,10 @@ class CReflectometry:
             i=0
             while path.isfile('fit'+str(i)+'.dat'):
                 simdata=pandas.read_csv('fit'+str(i)+'.dat', sep=' ', header=None, names=['Q', 'dQ', 'R', 'dR', 'fit'], skip_blank_lines=True, comment='#')
+                del simdata['dQ']
+                del simdata['R']
+                simdata = simdata.rename(columns={'fit':'R'})
+                simdata= simdata[['Q', 'R', 'dR']]
 
                 #add error bars
                 c1=s1max/qmax
@@ -2500,9 +2601,7 @@ class CReflectometry:
 
                 cbmat=(rhosolv-rhomin)/(rhomax-rhomin)*(cbmatmax-cbmatmin)+cbmatmin
 
-                simdata=pandas.read_csv('sim'+str(i)+'.dat', sep=' ', skip_blank_lines=True, comment='#')
                 simdata['dR']=0.0
-                simdata.columns=['Q', 'R', 'dR']
 
                 for index in simdata.index:
                     ns=I*simdata.iloc[index,1]*c1*c2*(simdata.iloc[index,0])**2*(c3+c4*(simdata.iloc[index,0])**2)
@@ -2511,10 +2610,10 @@ class CReflectometry:
                     dR=simdata.iloc[index,1]*dRoR                                             #see manuscript for details on calculation
                     simdata.iat[index,2]=dR
                     simdata.iat[index,1]=simdata.iloc[index,1]+normalvariate(0, 1) * dR       #modify reflectivity within error bars
-                    #print index,ns,nb,dRoR,dR,simdata.iloc[index,2]
+                    #if ns<0:
+                    #    print index,ns,I,simdata.iloc[index,1],c1,c2,simdata.iloc[index,0],c3,c4,nb,dRoR,dR,simdata.iloc[index,2]
 
                 simdata.to_csv('sim'+str(i)+'.dat', sep=' ', index=None)
-
                 i+=1
         finally:
             self.fnRemoveBackup()
