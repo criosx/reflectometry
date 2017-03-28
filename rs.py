@@ -2626,7 +2626,7 @@ class CReflectometry:
             self.fnWriteConstraint2SetupC(liAddition)  #write out
             self.fnMake()  #compile changed setup.c
             call(["rm", "-f", "mol.dat"])
-            call(["./fit", "-o"])  #write out profile.dat and fit.dat
+            call(["./fit", "-g"])  #write out profile.dat and fit.dat
             call(["sync"])  #synchronize file system
             sleep(1)  #wait for system to clean up
             i=0
