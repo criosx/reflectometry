@@ -542,6 +542,30 @@ class CReflectometry:
 
         import scipy.stats
 
+        def fnFindMaxFWHM(lList):
+            imax = 0
+            maxvalue =0
+            for i in range(len(lList)):
+                if lList[i]>maxvalue:
+                    maxvalue = lList[i]
+                    imax = i
+
+            ifwhmplus=imax
+            ifwhmminus=imax
+            while lList[ifwhmplus] > (maxvalue/2):
+                ifwhmplus = ifwhmplus + 1
+                if ifwhmplus == len(lList):
+                    ifwhmplus = ifwhmplus -1
+                    break
+            while lList[ifwhmminus] > (maxvalue/2):
+                ifwhmminus = ifwhmminus - 1
+                if ifwhmminus == (-1):
+                    ifwhmplus = 0
+                    break
+
+            return imax, maxvalue, ifwhmminus, ifwhmplus
+
+
         try:
             self.diStatResults = self.fnLoadObject('StatDataPython.dat')
             print 'Loaded statistical data from StatDataPython.dat'
@@ -606,7 +630,16 @@ class CReflectometry:
                 diResults[sMolgroup + '_INT'].append(fInt)
                 diResults[sMolgroup + '_AVG'].append(fAvg)
 
-                #percentage water in sub-membrane space for tBLM
+            #calculate ratios between frac1 and frac2
+            if ('frac1' in sMolgroups) and ('frac2' in sMolgroups):
+                if not 'ratio_f1f2' in diResults.keys():
+                    diResults['ratio_f1f2'] = []
+                if not 'ratio_f2f1' in diResults.keys():
+                    diResults['ratio_f2f1'] = []
+                diResults['ratio_f1f2'].append(diResults['frac1_INT'][-1]/diResults['frac2_INT'][-1])
+                diResults['ratio_f2f1'].append(diResults['frac2_INT'][-1]/diResults['frac1_INT'][-1])
+
+            #percentage water in sub-membrane space for tBLM
             if 'tether' in sMolgroups and 'tetherg' in sMolgroups \
                     and 'normarea' in sMolgroups and 'bME' in sMolgroups:
 
@@ -717,9 +750,24 @@ class CReflectometry:
                     diResults['fFracBulk'] = []
                 diResults['fFracBulk'].append(fFracBulk)
 
-                #print(str(iStartHC)+' '+str(iStartHG2)+' '+str(iStartBulk)+'\n')
+                #calculate peak position and FWHM for spline profile
+                imax, maxvalue, ifwhmminus, ifwhmplus = fnFindMaxFWHM(mgdict['protein']['areaaxis'])
+                if not 'fProteinPeakPosition' in diResults.keys():
+                    diResults['fProteinPeakPosition'] = []
+                diResults['fProteinPeakPosition'].append(mgdict['protein']['zaxis'][imax]-fStartbulk)
+                if not 'fProteinPeakValue' in diResults.keys():
+                    diResults['fProteinPeakValue'] = []
+                diResults['fProteinPeakValue'].append(mgdict['protein']['areaaxis'][imax])
+                if not 'fProteinFWHMMinusPosition' in diResults.keys():
+                    diResults['fProteinFWHMMinusPosition'] = []
+                diResults['fProteinFWHMMinusPosition'].append(mgdict['protein']['zaxis'][ifwhmminus]-fStartbulk)
+                if not 'fProteinFWHMPlusPosition' in diResults.keys():
+                    diResults['fProteinFWHMPlusPosition'] = []
+                diResults['fProteinFWHMPlusPosition'].append(mgdict['protein']['zaxis'][ifwhmplus]-fStartbulk)
+                if not 'fProteinFWHM' in diResults.keys():
+                    diResults['fProteinFWHM'] = []
+                diResults['fProteinFWHM'].append(mgdict['protein']['zaxis'][ifwhmplus]-mgdict['protein']['zaxis'][ifwhmminus])
 
-                #output
 
             if 'frac1' in sMolgroups:
                 fStartHG1 = float(mgdict['headgroup1']['headerdata']['z'])-0.5*float(mgdict['headgroup1']['headerdata']['l'])

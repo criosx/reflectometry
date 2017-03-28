@@ -1032,13 +1032,18 @@ public:
     tBLM_HC18_d31POPC();
     virtual ~tBLM_HC18_d31POPC() {};
 };
+class tBLM_WC14_DPPC: public tBLM_quaternary_chol
+{
+public:
+    tBLM_WC14_DPPC();
+    virtual ~tBLM_WC14_DPPC() {};
+};
 class tBLM_WC14_DOPC: public tBLM_quaternary_chol
 {
 public:
     tBLM_WC14_DOPC();
     virtual ~tBLM_WC14_DOPC() {};
 };
-
 class tBLM_WC14_DPhyPC: public tBLM_quaternary_chol
 {
 public:
@@ -1072,6 +1077,12 @@ class tBLM_HC18_d31POPC_POPS: public tBLM_quaternary_chol
 public:
     tBLM_HC18_d31POPC_POPS();
     virtual ~tBLM_HC18_d31POPC_POPS() {};
+};
+class tBLM_HC18_DOPC_DOPG: public tBLM_quaternary_chol
+{
+public:
+    tBLM_HC18_DOPC_DOPG();
+    virtual ~tBLM_HC18_DOPC_DOPG() {};
 };
 class tBLM_HC18_DOPC_DOPS: public tBLM_quaternary_chol
 {

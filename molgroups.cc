@@ -5769,13 +5769,32 @@ tBLM_HC18_d31POPC::tBLM_HC18_d31POPC()
     
 }
 
-tBLM_WC14_DOPC::tBLM_WC14_DOPC()
+tBLM_WC14_DPPC::tBLM_WC14_DPPC()
 {
 	tether->vol=380;
 	tether->nSL=2.1864e-4;
 	tetherg->vol=110;
 	tetherg->nSL=1.8654e-4;
 	
+    volacyllipid=789;
+    nslacyllipid=-3.2477E-04;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=850;
+    nslacyltether=-3.5834e-4;
+    
+    fnAdjustParameters();
+    
+}
+tBLM_WC14_DOPC::tBLM_WC14_DOPC()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
     volacyllipid=972;
     nslacyllipid=-2.09e-4;
     volmethyllipid=98.8;
@@ -5788,6 +5807,7 @@ tBLM_WC14_DOPC::tBLM_WC14_DOPC()
     fnAdjustParameters();
     
 }
+
 tBLM_WC14_DPhyPC::tBLM_WC14_DPhyPC()
 {
 	tether->vol=380;
@@ -5933,7 +5953,36 @@ tBLM_HC18_d31POPC_POPS::tBLM_HC18_d31POPC_POPS()
     
     fnAdjustParameters();    
 }
-
+tBLM_HC18_DOPC_DOPG::tBLM_HC18_DOPC_DOPG()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=972;
+    nslacyllipid=-2.09e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=999;
+    nslacyltether=-2.25e-4;
+    
+    headgroup1_2->vol=270;                //PG volume and length are estimates
+    headgroup2_2->vol=270;
+    headgroup1_2->nSL=7.1472e-4;
+    headgroup2_2->nSL=7.1472e-4;
+    headgroup1_2->l=7.8;
+    headgroup2_2->l=7.8;
+    
+    volacyllipid_2=972;
+    nslacyllipid_2=-2.09e-4;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    fnAdjustParameters();
+}
 tBLM_HC18_DOPC_DOPS::tBLM_HC18_DOPC_DOPS()
 {
 	tether->vol=380;
