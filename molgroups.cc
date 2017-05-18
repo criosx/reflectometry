@@ -5804,6 +5804,9 @@ tBLM_WC14_DOPC::tBLM_WC14_DOPC()
     volacyltether=850;
     nslacyltether=-3.5834e-4;
     
+    volchol=630;
+    nslchol=1.3215e-4;
+    
     fnAdjustParameters();
     
 }
@@ -6010,6 +6013,37 @@ tBLM_HC18_DOPC_DOPS::tBLM_HC18_DOPC_DOPS()
     nslacyllipid_2=-2.09e-4;
     volmethyllipid_2=98.8;
     nslmethyllipid_2=-9.15e-5;
+    
+    fnAdjustParameters();
+    
+}
+tBLM_HC18_DOPC_LPSshort::tBLM_HC18_DOPC_LPSshort()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=972;
+    nslacyllipid=-2.09e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=999;
+    nslacyltether=-2.25e-4;
+    
+    headgroup1_2->vol=900;                //PS volume and length are estimates
+    headgroup2_2->vol=900;
+    headgroup1_2->fnSetnSL(2.4384E-03,2.4384E-03);
+    headgroup2_2->fnSetnSL(2.4384E-03,2.4384E-03);
+    headgroup1_2->l=11;
+    headgroup2_2->l=11;
+    
+    volacyllipid_2=1968.00;
+    nslacyllipid_2=-7.9101E-04;
+    volmethyllipid_2=98.8*3;
+    nslmethyllipid_2=-9.15e-5*3;
     
     fnAdjustParameters();
     
@@ -6561,7 +6595,145 @@ tBLM_HC18_POPC_POPS_PIP_CHOL::tBLM_HC18_POPC_POPS_PIP_CHOL()
     fnAdjustParameters();
     
 }
+tBLM_HC18_POPC_POPG_Cardiolipin18T1_CHOL::tBLM_HC18_POPC_POPG_Cardiolipin18T1_CHOL()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=925;
+    nslacyllipid=-2.67e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=999;
+    nslacyltether=-2.25e-4;
+    
+    headgroup1_2->vol=270;                //PG volume and length are estimates
+    headgroup2_2->vol=270;
+    headgroup1_2->nSL=7.1472e-4;
+    headgroup2_2->nSL=7.1472e-4;
+    headgroup1_2->l=7.8;
+    headgroup2_2->l=7.8;
+    
+    volacyllipid_2=925;
+    nslacyllipid_2=-2.67e-4;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    volchol=630;
+    nslchol=1.3215e-4;
+    
+    headgroup1_3->vol=684.40;                //cardiolipin
+    headgroup2_3->vol=684.40;
+    headgroup1_3->fnSetnSL(2.82E-06,2.97E-06);
+    headgroup2_3->fnSetnSL(2.82E-06,2.97E-06);
+    headgroup1_3->l=9.56;
+    headgroup2_3->l=9.56;
+    
+    volacyllipid_3=972*2;
+    nslacyllipid_3=-2.09e-4*2;
+    volmethyllipid_3=98.8*2;
+    nslmethyllipid_3=-9.15e-5*2;
+    
+    fnAdjustParameters();
+    
+}
+tBLM_HC18_POPC_POPE_Cardiolipin18T1_CHOL::tBLM_HC18_POPC_POPE_Cardiolipin18T1_CHOL()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=925;
+    nslacyllipid=-2.67e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=999;
+    nslacyltether=-2.25e-4;
+    
+    headgroup1_2->vol=262;                //PE volume and length are estimates
+    headgroup2_2->vol=262;
+    headgroup1_2->nSL=5.4558E-04;
+    headgroup2_2->nSL=5.4558E-04;
+    headgroup1_2->l=7.7;
+    headgroup2_2->l=7.7;
+    
+    volacyllipid_2=925;
+    nslacyllipid_2=-2.67e-4;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    volchol=630;
+    nslchol=1.3215e-4;
+    
+    headgroup1_3->vol=684.40;                //cardiolipin
+    headgroup2_3->vol=684.40;
+    headgroup1_3->fnSetnSL(2.82E-06,2.97E-06);
+    headgroup2_3->fnSetnSL(2.82E-06,2.97E-06);
+    headgroup1_3->l=9.56;
+    headgroup2_3->l=9.56;
+    
+    volacyllipid_3=972*2;
+    nslacyllipid_3=-2.09e-4*2;
+    volmethyllipid_3=98.8*2;
+    nslmethyllipid_3=-9.15e-5*2;
+    
+    fnAdjustParameters();
+    
+}
 
+tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL::tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=972;
+    nslacyllipid=-2.09e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=999;
+    nslacyltether=-2.25e-4;
+    
+    headgroup1_2->vol=270;                //PG volume and length are estimates
+    headgroup2_2->vol=270;
+    headgroup1_2->nSL=7.1472e-4;
+    headgroup2_2->nSL=7.1472e-4;
+    headgroup1_2->l=7.8;
+    headgroup2_2->l=7.8;
+    
+    volacyllipid_2=925;
+    nslacyllipid_2=-2.67e-4;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    volchol=630;
+    nslchol=1.3215e-4;
+    
+    headgroup1_3->vol=684.40;                //cardiolipin
+    headgroup2_3->vol=684.40;
+    headgroup1_3->fnSetnSL(2.82E-06,2.97E-06);
+    headgroup2_3->fnSetnSL(2.82E-06,2.97E-06);
+    headgroup1_3->l=9.56;
+    headgroup2_3->l=9.56;
+    
+    volacyllipid_3=972*2;
+    nslacyllipid_3=-2.09e-4*2;
+    volmethyllipid_3=98.8*2;
+    nslmethyllipid_3=-9.15e-5*2;
+    
+    fnAdjustParameters();
+    
+}
 
 tBLM_HC18_DOPC_DOPS_PIP_CHOL_domain::tBLM_HC18_DOPC_DOPS_PIP_CHOL_domain()
 {
@@ -6625,6 +6797,7 @@ tBLM_HC18_DOPC_DOPS_PIP_CHOL_domain::tBLM_HC18_DOPC_DOPS_PIP_CHOL_domain()
     fnAdjustParameters();
     
 }
+
 
 //------------------------------------------------------------------------------------------------------
 void fnWriteConstant(FILE *fp, const char *cName, double area, double nSLD, int dimension, double stepsize)

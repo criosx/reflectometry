@@ -594,9 +594,6 @@ class CReflectometry:
         except IOError:
             print 'Did not find any fractional envelopes ...'
 
-
-
-
         diResults = {}
         sMolgroups = self.diStatResults['Molgroups'][0].keys()
         for sMolgroup in sMolgroups:  #create results for individual molgroups
@@ -705,161 +702,70 @@ class CReflectometry:
                 diResults['fAreaPerLipid2'].append(fAreaPerLipid2)
 
             # fraction of protein in certain parts of the membrane
-            if 'protein' in sMolgroups:
-                fStartHG1 = float(mgdict['headgroup1']['headerdata']['z'])-0.5*float(mgdict['headgroup1']['headerdata']['l'])
-                fStartHC  = float(mgdict['lipid1']['headerdata']['z'])-0.5*float(mgdict['lipid1']['headerdata']['l'])
-                fStartMethyl2  = float(mgdict['methyl2']['headerdata']['z'])-0.5*float(mgdict['methyl2']['headerdata']['l'])
-                fStartHG2 = float(mgdict['headgroup2']['headerdata']['z'])-0.5*float(mgdict['headgroup2']['headerdata']['l'])
-                fStartbulk = float(mgdict['headgroup2']['headerdata']['z'])+0.5*float(mgdict['headgroup2']['headerdata']['l'])
 
-                fStepSize=mgdict['protein']['zaxis'][1] - mgdict['protein']['zaxis'][0]
+            for group in ['protein', 'frac1', 'frac2']:
+                if group in sMolgroups:
+                    fStartHG1 = float(mgdict['headgroup1']['headerdata']['z'])-0.5*float(mgdict['headgroup1']['headerdata']['l'])
+                    fStartHC  = float(mgdict['lipid1']['headerdata']['z'])-0.5*float(mgdict['lipid1']['headerdata']['l'])
+                    fStartMethyl2  = float(mgdict['methyl2']['headerdata']['z'])-0.5*float(mgdict['methyl2']['headerdata']['l'])
+                    fStartHG2 = float(mgdict['headgroup2']['headerdata']['z'])-0.5*float(mgdict['headgroup2']['headerdata']['l'])
+                    fStartbulk = float(mgdict['headgroup2']['headerdata']['z'])+0.5*float(mgdict['headgroup2']['headerdata']['l'])
 
-                iStartHG1=int(floor(fStartHG1/fStepSize+0.5))
-                iStartHC=int(floor(fStartHC/fStepSize+0.5))
-                iStartMethyl2=int(floor(fStartMethyl2/fStepSize+0.5))
-                iStartHG2=int(floor(fStartHG2/fStepSize+0.5))
-                iStartBulk=int(floor(fStartbulk/fStepSize+0.5))
+                    fStepSize=mgdict[group]['zaxis'][1] - mgdict[group]['zaxis'][0]
 
-                fFracSubmembrane=sum(mgdict['protein']['areaaxis'][0:iStartHC])/sum(mgdict['protein']['areaaxis'])
-                fFracInnerHeadgroup=sum(mgdict['protein']['areaaxis'][iStartHG1:iStartHC])/sum(mgdict['protein']['areaaxis'])
-                fFracInnerHydrocarbon=sum(mgdict['protein']['areaaxis'][iStartHC:iStartMethyl2])/sum(mgdict['protein']['areaaxis'])
-                fFracOuterHydrocarbon=sum(mgdict['protein']['areaaxis'][iStartMethyl2:iStartHG2])/sum(mgdict['protein']['areaaxis'])
-                fFracHydrocarbon=sum(mgdict['protein']['areaaxis'][iStartHC:iStartHG2])/sum(mgdict['protein']['areaaxis'])
-                fFracOuterHeadgroup=sum(mgdict['protein']['areaaxis'][iStartHG2:iStartBulk])/sum(mgdict['protein']['areaaxis'])
-                fFracBulk=sum(mgdict['protein']['areaaxis'][iStartBulk:])/sum(mgdict['protein']['areaaxis'])
+                    iStartHG1=int(floor(fStartHG1/fStepSize+0.5))
+                    iStartHC=int(floor(fStartHC/fStepSize+0.5))
+                    iStartMethyl2=int(floor(fStartMethyl2/fStepSize+0.5))
+                    iStartHG2=int(floor(fStartHG2/fStepSize+0.5))
+                    iStartBulk=int(floor(fStartbulk/fStepSize+0.5))
 
-                if not 'fFracSubmembrane' in diResults.keys():
-                    diResults['fFracSubmembrane'] = []
-                diResults['fFracSubmembrane'].append(fFracSubmembrane)
-                if not 'fFracHydrocarbon' in diResults.keys():
-                    diResults['fFracHydrocarbon'] = []
-                diResults['fFracHydrocarbon'].append(fFracHydrocarbon)
-                if not 'fFracInnerHydrocarbon' in diResults.keys():
-                    diResults['fFracInnerHydrocarbon'] = []
-                diResults['fFracInnerHydrocarbon'].append(fFracInnerHydrocarbon)
-                if not 'fFracOuterHydrocarbon' in diResults.keys():
-                    diResults['fFracOuterHydrocarbon'] = []
-                diResults['fFracOuterHydrocarbon'].append(fFracOuterHydrocarbon)
-                if not 'fFracInnerHeadgroup' in diResults.keys():
-                    diResults['fFracInnerHeadgroup'] = []
-                diResults['fFracInnerHeadgroup'].append(fFracInnerHeadgroup)
-                if not 'fFracOuterHeadgroup' in diResults.keys():
-                    diResults['fFracOuterHeadgroup'] = []
-                diResults['fFracOuterHeadgroup'].append(fFracOuterHeadgroup)
-                if not 'fFracBulk' in diResults.keys():
-                    diResults['fFracBulk'] = []
-                diResults['fFracBulk'].append(fFracBulk)
+                    fFracSubmembrane=sum(mgdict[group]['areaaxis'][0:iStartHC])/sum(mgdict[group]['areaaxis'])
+                    fFracInnerHeadgroup=sum(mgdict[group]['areaaxis'][iStartHG1:iStartHC])/sum(mgdict[group]['areaaxis'])
+                    fFracInnerHydrocarbon=sum(mgdict[group]['areaaxis'][iStartHC:iStartMethyl2])/sum(mgdict[group]['areaaxis'])
+                    fFracOuterHydrocarbon=sum(mgdict[group]['areaaxis'][iStartMethyl2:iStartHG2])/sum(mgdict[group]['areaaxis'])
+                    fFracHydrocarbon=sum(mgdict[group]['areaaxis'][iStartHC:iStartHG2])/sum(mgdict[group]['areaaxis'])
+                    fFracOuterHeadgroup=sum(mgdict[group]['areaaxis'][iStartHG2:iStartBulk])/sum(mgdict[group]['areaaxis'])
+                    fFracBulk=sum(mgdict[group]['areaaxis'][iStartBulk:])/sum(mgdict[group]['areaaxis'])
 
-                #calculate peak position and FWHM for spline profile
-                imax, maxvalue, ifwhmminus, ifwhmplus = fnFindMaxFWHM(mgdict['protein']['areaaxis'])
-                if not 'fProteinPeakPosition' in diResults.keys():
-                    diResults['fProteinPeakPosition'] = []
-                diResults['fProteinPeakPosition'].append(mgdict['protein']['zaxis'][imax]-fStartbulk)
-                if not 'fProteinPeakValue' in diResults.keys():
-                    diResults['fProteinPeakValue'] = []
-                diResults['fProteinPeakValue'].append(mgdict['protein']['areaaxis'][imax])
-                if not 'fProteinFWHMMinusPosition' in diResults.keys():
-                    diResults['fProteinFWHMMinusPosition'] = []
-                diResults['fProteinFWHMMinusPosition'].append(mgdict['protein']['zaxis'][ifwhmminus]-fStartbulk)
-                if not 'fProteinFWHMPlusPosition' in diResults.keys():
-                    diResults['fProteinFWHMPlusPosition'] = []
-                diResults['fProteinFWHMPlusPosition'].append(mgdict['protein']['zaxis'][ifwhmplus]-fStartbulk)
-                if not 'fProteinFWHM' in diResults.keys():
-                    diResults['fProteinFWHM'] = []
-                diResults['fProteinFWHM'].append(mgdict['protein']['zaxis'][ifwhmplus]-mgdict['protein']['zaxis'][ifwhmminus])
+                    if not 'fFracSubmembrane_'+group in diResults.keys():
+                        diResults['fFracSubmembrane_'+group] = []
+                    diResults['fFracSubmembrane_'+group].append(fFracSubmembrane)
+                    if not 'fFracHydrocarbon_'+group in diResults.keys():
+                        diResults['fFracHydrocarbon_'+group] = []
+                    diResults['fFracHydrocarbon_'+group].append(fFracHydrocarbon)
+                    if not 'fFracInnerHydrocarbon_'+group in diResults.keys():
+                        diResults['fFracInnerHydrocarbon_'+group] = []
+                    diResults['fFracInnerHydrocarbon_'+group].append(fFracInnerHydrocarbon)
+                    if not 'fFracOuterHydrocarbon_'+group in diResults.keys():
+                        diResults['fFracOuterHydrocarbon_'+group] = []
+                    diResults['fFracOuterHydrocarbon_'+group].append(fFracOuterHydrocarbon)
+                    if not 'fFracInnerHeadgroup_'+group in diResults.keys():
+                        diResults['fFracInnerHeadgroup_'+group] = []
+                    diResults['fFracInnerHeadgroup_'+group].append(fFracInnerHeadgroup)
+                    if not 'fFracOuterHeadgroup_'+group in diResults.keys():
+                        diResults['fFracOuterHeadgroup_'+group] = []
+                    diResults['fFracOuterHeadgroup_'+group].append(fFracOuterHeadgroup)
+                    if not 'fFracBulk_'+group in diResults.keys():
+                        diResults['fFracBulk_'+group] = []
+                    diResults['fFracBulk_'+group].append(fFracBulk)
 
-
-            if 'frac1' in sMolgroups:
-                fStartHG1 = float(mgdict['headgroup1']['headerdata']['z'])-0.5*float(mgdict['headgroup1']['headerdata']['l'])
-                fStartHC  = float(mgdict['lipid1']['headerdata']['z'])-0.5*float(mgdict['lipid1']['headerdata']['l'])
-                fStartMethyl2  = float(mgdict['methyl2']['headerdata']['z'])-0.5*float(mgdict['methyl2']['headerdata']['l'])
-                fStartHG2 = float(mgdict['headgroup2']['headerdata']['z'])-0.5*float(mgdict['headgroup2']['headerdata']['l'])
-                fStartbulk = float(mgdict['headgroup2']['headerdata']['z'])+0.5*float(mgdict['headgroup2']['headerdata']['l'])
-
-                fStepSize=mgdict['frac1']['zaxis'][1] - mgdict['frac1']['zaxis'][0]
-
-                iStartHG1=int(floor(fStartHG1/fStepSize+0.5))
-                iStartHC=int(floor(fStartHC/fStepSize+0.5))
-                iStartMethyl2=int(floor(fStartMethyl2/fStepSize+0.5))
-                iStartHG2=int(floor(fStartHG2/fStepSize+0.5))
-                iStartBulk=int(floor(fStartbulk/fStepSize+0.5))
-
-                fFracSubmembrane=sum(mgdict['frac1']['areaaxis'][0:iStartHC])/sum(mgdict['frac1']['areaaxis'])
-                fFracInnerHeadgroup=sum(mgdict['frac1']['areaaxis'][iStartHG1:iStartHC])/sum(mgdict['frac1']['areaaxis'])
-                fFracInnerHydrocarbon=sum(mgdict['frac1']['areaaxis'][iStartHC:iStartMethyl2])/sum(mgdict['frac1']['areaaxis'])
-                fFracOuterHydrocarbon=sum(mgdict['frac1']['areaaxis'][iStartMethyl2:iStartHG2])/sum(mgdict['frac1']['areaaxis'])
-                fFracHydrocarbon=sum(mgdict['frac1']['areaaxis'][iStartHC:iStartHG2])/sum(mgdict['frac1']['areaaxis'])
-                fFracOuterHeadgroup=sum(mgdict['frac1']['areaaxis'][iStartHG2:iStartBulk])/sum(mgdict['frac1']['areaaxis'])
-                fFracBulk=sum(mgdict['frac1']['areaaxis'][iStartBulk:])/sum(mgdict['frac1']['areaaxis'])
-
-                if not 'fFracSubmembranefrac1' in diResults.keys():
-                    diResults['fFracSubmembranefrac1'] = []
-                diResults['fFracSubmembranefrac1'].append(fFracSubmembrane)
-                if not 'fFracHydrocarbonfrac1' in diResults.keys():
-                    diResults['fFracHydrocarbonfrac1'] = []
-                diResults['fFracHydrocarbonfrac1'].append(fFracHydrocarbon)
-                if not 'fFracInnerHydrocarbonfrac1' in diResults.keys():
-                    diResults['fFracInnerHydrocarbonfrac1'] = []
-                diResults['fFracInnerHydrocarbonfrac1'].append(fFracInnerHydrocarbon)
-                if not 'fFracOuterHydrocarbonfrac1' in diResults.keys():
-                    diResults['fFracOuterHydrocarbonfrac1'] = []
-                diResults['fFracOuterHydrocarbonfrac1'].append(fFracOuterHydrocarbon)
-                if not 'fFracInnerHeadgroupfrac1' in diResults.keys():
-                    diResults['fFracInnerHeadgroupfrac1'] = []
-                diResults['fFracInnerHeadgroupfrac1'].append(fFracInnerHeadgroup)
-                if not 'fFracOuterHeadgroupfrac1' in diResults.keys():
-                    diResults['fFracOuterHeadgroupfrac1'] = []
-                diResults['fFracOuterHeadgroupfrac1'].append(fFracOuterHeadgroup)
-                if not 'fFracBulkfrac1' in diResults.keys():
-                    diResults['fFracBulkfrac1'] = []
-                diResults['fFracBulkfrac1'].append(fFracBulk)
-
-            if 'frac2' in sMolgroups:
-                fStartHG1 = float(mgdict['headgroup1']['headerdata']['z'])-0.5*float(mgdict['headgroup1']['headerdata']['l'])
-                fStartHC  = float(mgdict['lipid1']['headerdata']['z'])-0.5*float(mgdict['lipid1']['headerdata']['l'])
-                fStartMethyl2  = float(mgdict['methyl2']['headerdata']['z'])-0.5*float(mgdict['methyl2']['headerdata']['l'])
-                fStartHG2 = float(mgdict['headgroup2']['headerdata']['z'])-0.5*float(mgdict['headgroup2']['headerdata']['l'])
-                fStartbulk = float(mgdict['headgroup2']['headerdata']['z'])+0.5*float(mgdict['headgroup2']['headerdata']['l'])
-
-                fStepSize=mgdict['frac2']['zaxis'][1] - mgdict['frac2']['zaxis'][0]
-
-                iStartHG1=int(floor(fStartHG1/fStepSize+0.5))
-                iStartHC=int(floor(fStartHC/fStepSize+0.5))
-                iStartMethyl2=int(floor(fStartMethyl2/fStepSize+0.5))
-                iStartHG2=int(floor(fStartHG2/fStepSize+0.5))
-                iStartBulk=int(floor(fStartbulk/fStepSize+0.5))
-
-                fFracSubmembrane=sum(mgdict['frac2']['areaaxis'][0:iStartHC])/sum(mgdict['frac2']['areaaxis'])
-                fFracInnerHeadgroup=sum(mgdict['frac2']['areaaxis'][iStartHG1:iStartHC])/sum(mgdict['frac2']['areaaxis'])
-                fFracInnerHydrocarbon=sum(mgdict['frac2']['areaaxis'][iStartHC:iStartMethyl2])/sum(mgdict['frac2']['areaaxis'])
-                fFracOuterHydrocarbon=sum(mgdict['frac2']['areaaxis'][iStartMethyl2:iStartHG2])/sum(mgdict['frac2']['areaaxis'])
-                fFracHydrocarbon=sum(mgdict['frac2']['areaaxis'][iStartHC:iStartHG2])/sum(mgdict['frac2']['areaaxis'])
-                fFracOuterHeadgroup=sum(mgdict['frac2']['areaaxis'][iStartHG2:iStartBulk])/sum(mgdict['frac2']['areaaxis'])
-                fFracBulk=sum(mgdict['frac2']['areaaxis'][iStartBulk:])/sum(mgdict['frac2']['areaaxis'])
-
-                if not 'fFracSubmembranefrac2' in diResults.keys():
-                    diResults['fFracSubmembranefrac2'] = []
-                diResults['fFracSubmembranefrac2'].append(fFracSubmembrane)
-                if not 'fFracHydrocarbonfrac2' in diResults.keys():
-                    diResults['fFracHydrocarbonfrac2'] = []
-                diResults['fFracHydrocarbonfrac2'].append(fFracHydrocarbon)
-                if not 'fFracInnerHydrocarbonfrac2' in diResults.keys():
-                    diResults['fFracInnerHydrocarbonfrac2'] = []
-                diResults['fFracInnerHydrocarbonfrac2'].append(fFracInnerHydrocarbon)
-                if not 'fFracOuterHydrocarbonfrac2' in diResults.keys():
-                    diResults['fFracOuterHydrocarbonfrac2'] = []
-                diResults['fFracOuterHydrocarbonfrac2'].append(fFracOuterHydrocarbon)
-                if not 'fFracInnerHeadgroupfrac2' in diResults.keys():
-                    diResults['fFracInnerHeadgroupfrac2'] = []
-                diResults['fFracInnerHeadgroupfrac2'].append(fFracInnerHeadgroup)
-                if not 'fFracOuterHeadgroupfrac2' in diResults.keys():
-                    diResults['fFracOuterHeadgroupfrac2'] = []
-                diResults['fFracOuterHeadgroupfrac2'].append(fFracOuterHeadgroup)
-                if not 'fFracBulkfrac2' in diResults.keys():
-                    diResults['fFracBulkfrac2'] = []
-                diResults['fFracBulkfrac2'].append(fFracBulk)
-
-
+                    #calculate peak position and FWHM for spline profile
+                    imax, maxvalue, ifwhmminus, ifwhmplus = fnFindMaxFWHM(mgdict[group]['areaaxis'])
+                    if not 'fPeakPosition_'+group in diResults.keys():
+                        diResults['fPeakPosition_'+group] = []
+                    diResults['fPeakPosition_'+group].append(mgdict[group]['zaxis'][imax]-fStartbulk)
+                    if not 'fPeakValue_'+group in diResults.keys():
+                        diResults['fPeakValue_'+group] = []
+                    diResults['fPeakValue_'+group].append(mgdict[group]['areaaxis'][imax])
+                    if not 'fFWHMMinusPosition_'+group in diResults.keys():
+                        diResults['fFWHMMinusPosition_'+group] = []
+                    diResults['fFWHMMinusPosition_'+group].append(mgdict[group]['zaxis'][ifwhmminus]-fStartbulk)
+                    if not 'fFWHMPlusPosition_'+group in diResults.keys():
+                        diResults['fFWHMPlusPosition_'+group] = []
+                    diResults['fFWHMPlusPosition_'+group].append(mgdict[group]['zaxis'][ifwhmplus]-fStartbulk)
+                    if not 'fFWHM_'+group in diResults.keys():
+                        diResults['fFWHM_'+group] = []
+                    diResults['fFWHM_'+group].append(mgdict[group]['zaxis'][ifwhmplus]-mgdict[group]['zaxis'][ifwhmminus])
 
         if fConfidence > 1:
             fConfidence = 1

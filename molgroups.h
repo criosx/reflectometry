@@ -1090,6 +1090,12 @@ public:
     tBLM_HC18_DOPC_DOPS();
     virtual ~tBLM_HC18_DOPC_DOPS() {};
 };
+class tBLM_HC18_DOPC_LPSshort: public tBLM_quaternary_chol        // see STN antimicrobial Mar 2017
+{
+public:
+    tBLM_HC18_DOPC_LPSshort();
+    virtual ~tBLM_HC18_DOPC_LPSshort() {};
+};
 class tBLM_HC18_DOPC_DGSNTA: public tBLM_quaternary_chol
 {
 public:
@@ -1198,6 +1204,24 @@ class tBLM_HC18_POPC_POPS_PIP_CHOL: public tBLM_quaternary_chol
 public:
     tBLM_HC18_POPC_POPS_PIP_CHOL();
     virtual ~tBLM_HC18_POPC_POPS_PIP_CHOL() {};
+};
+class tBLM_HC18_POPC_POPG_Cardiolipin18T1_CHOL: public tBLM_quaternary_chol
+{
+public:
+    tBLM_HC18_POPC_POPG_Cardiolipin18T1_CHOL();
+    virtual ~tBLM_HC18_POPC_POPG_Cardiolipin18T1_CHOL() {};
+};
+class tBLM_HC18_POPC_POPE_Cardiolipin18T1_CHOL: public tBLM_quaternary_chol
+{
+public:
+    tBLM_HC18_POPC_POPE_Cardiolipin18T1_CHOL();
+    virtual ~tBLM_HC18_POPC_POPE_Cardiolipin18T1_CHOL() {};
+};
+class tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL: public tBLM_quaternary_chol
+{
+public:
+    tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL();
+    virtual ~tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL() {};
 };
 
 //-----------------------------------------------------------------------------------------------------------
