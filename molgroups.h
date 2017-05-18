@@ -74,6 +74,28 @@ public:
 };
 
 //------------------------------------------------------------------------------------------------------
+class BoxErrLinearSLD : public nSLDObj
+{
+public:
+    BoxErrLinearSLD() {};
+    BoxErrLinearSLD(double z, double sigma1, double sigma2, double length, double vol, double nSLD1, double nSLD2, double numberfraction);
+    virtual ~BoxErrLinearSLD();
+    virtual double fnGetLowerLimit();
+    virtual double fnGetUpperLimit();
+    virtual double fnGetArea(double z);
+    virtual double fnGetnSLD(double z);
+    virtual double fnGetnSL(double z);
+    virtual void   fnSetSigma(double sigma);
+    virtual void   fnSetSigma(double sigma1, double sigma2);
+    virtual void   fnSetnSLD(double nSLD);
+    virtual void   fnSetnSLD(double nSLD1, double nSLD2);
+    virtual void   fnSetZ(double dz);
+    virtual void   fnWritePar2File (FILE *fp, const char *cName, int dimension, double stepsize);
+    
+    double sigma1, sigma2, nSLD1, nSLD2;
+};
+
+//------------------------------------------------------------------------------------------------------
 
 class Gaussian : public nSLDObj
 {
@@ -1187,6 +1209,13 @@ class tBLM_HC18_POPC_POPG_CHOL: public tBLM_quaternary_chol
 public:
     tBLM_HC18_POPC_POPG_CHOL();
     virtual ~tBLM_HC18_POPC_POPG_CHOL() {};
+};
+
+class tBLM_WC14_POPC_POPS_POPA: public tBLM_quaternary_chol
+{
+public:
+    tBLM_WC14_POPC_POPS_POPA();
+    virtual ~tBLM_WC14_POPC_POPS_POPA() {};
 };
 
 //-----------------------------------------------------------------------------------------------------------

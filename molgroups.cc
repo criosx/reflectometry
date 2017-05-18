@@ -446,6 +446,89 @@ void   Box2Err::fnWritePar2File(FILE *fp, const char *cName, int dimension, doub
     nSLDObj::fnWriteData2File(fp, cName, dimension, stepsize);
 }
 
+//------------------------------------------------------------------------------------------------------
+
+BoxErrLinearSLD::BoxErrLinearSLD(double dz, double dsigma1, double dsigma2, double dlength, double dvolume, double dnSLD1, double dnSLD2, double dnumberfraction=1)
+{
+    z=dz; sigma1=dsigma1; sigma2=dsigma2; l=dlength, vol=dvolume, nSLD1=dnSLD1, nSLD2=dnSLD2, nf=dnumberfraction;
+};
+
+BoxErrLinearSLD::~BoxErrLinearSLD(){};
+
+//Gaussian function definition, integral is volume, return value is area at position z
+double BoxErrLinearSLD::fnGetArea(double dz) {
+    
+    if ((l!=0) && (sigma1!=0) && (sigma2!=0)) {
+        return (vol/l)*0.5*(erf((dz-z+0.5*l)/sqrt(2)/sigma1)-erf((dz-z-0.5*l)/sqrt(2)/sigma2))*nf;        
+    }
+    else {
+        return 0;
+    }
+};
+
+//linear nSLD
+double BoxErrLinearSLD::fnGetnSLD(double dz) {
+    if (vol!=0) { 
+
+        if (dz < (z - 0.5*l)) {
+//	printf("Returning 0 because dz is %f and z ranges from %f to %f\n", dz, z-0.5*l, z+0.5*l);
+            return nSLD1;
+        }
+        else if (dz > (z + 0.5*l)) {
+            return nSLD2;
+        }
+        else {
+            return (nSLD1 + (nSLD2-nSLD1)*(dz-(z-0.5*l))/l);
+        //printf("%f\n", (nSLD1 + (nSLD2-nSLD1)*(dz-(z-0.5*l))/l));
+        }
+    }
+    else {
+        return 0;
+    }
+};
+
+double BoxErrLinearSLD::fnGetnSL(double dz) {
+
+    return fnGetnSLD(dz)*vol;
+    
+};
+
+//Gaussians are cut off below and above 3 sigma
+double BoxErrLinearSLD::fnGetLowerLimit() {return z-0.5*l-3*sigma1;};
+double BoxErrLinearSLD::fnGetUpperLimit() {return z+0.5*l+3*sigma2;};
+
+void BoxErrLinearSLD::fnSetSigma(double sigma)
+{
+	sigma1=sigma;
+	sigma2=sigma;
+}
+void BoxErrLinearSLD::fnSetSigma(double dsigma1, double dsigma2)
+{
+	sigma1=dsigma1;
+	sigma2=dsigma2;
+}
+
+void BoxErrLinearSLD::fnSetnSLD(double nSLD)
+{
+	nSLD1=nSLD;
+	nSLD2=nSLD;
+}
+void BoxErrLinearSLD::fnSetnSLD(double dnSLD1, double dnSLD2)
+{
+	nSLD1=dnSLD1;
+	nSLD2=dnSLD2;
+}
+
+void BoxErrLinearSLD::fnSetZ(double dz)
+{
+	z=dz;
+};
+
+void   BoxErrLinearSLD::fnWritePar2File(FILE *fp, const char *cName, int dimension, double stepsize)
+{
+    fprintf(fp, "BoxErrLinearSLD %s z %lf sigma1 %lf sigma2 %lf l %lf vol %lf nSLD1 %1f nSLD2 %e nf %lf \n",cName, z, sigma1, sigma2, l, vol, nSLD1, nSLD2, nf);
+    nSLDObj::fnWriteData2File(fp, cName, dimension, stepsize);
+}
 
 //------------------------------------------------------------------------------------------------------
 
@@ -4556,7 +4639,7 @@ double DiscreteEuler::fnGetVolume(double dz1, double dz2) {
     if (dz1>dz2) {
         return 0;
     }
-    if (dz2>double(iNumberOfPoints)*dZSpacing) {dz2=double(iNumberOfPoints)*dZSpacing;}
+    if (dz2>dStartPosition + double(iNumberOfPoints)*dZSpacing) {dz2=dStartPosition + double(iNumberOfPoints)*dZSpacing;}
     
     d=dz1; integral=0;
     while (1) {
@@ -5080,7 +5163,7 @@ double Hermite::fnGetSplineIntegral(double dz1, double dz2, double dp[], double 
     
     //check for boundaries
     if (dz1<dp[0]) {dz1=dp[0];}
-    if (dz2>dp[numberofcontrolpoints-1]) {dz2=dp[numberofcontrolpoints];}
+    if (dz2>dp[numberofcontrolpoints-1]) {dz2=dp[numberofcontrolpoints-1];}
         
     integral=0; d=dz1;
     while (d<=dz2) {
@@ -6797,6 +6880,51 @@ tBLM_HC18_DOPC_DOPS_PIP_CHOL_domain::tBLM_HC18_DOPC_DOPS_PIP_CHOL_domain()
     fnAdjustParameters();
     
 }
+
+tBLM_WC14_POPC_POPS_POPA::tBLM_WC14_POPC_POPS_POPA()
+{
+	tether->vol=380;
+	tether->nSL=2.1864e-4;
+	tetherg->vol=110;
+	tetherg->nSL=1.8654e-4;
+	
+    volacyllipid=925;
+    nslacyllipid=-2.67e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=850;
+    nslacyltether=-3.5834e-4;
+    
+	headgroup1_2->vol=280;                //PS volume and length are estimates
+	headgroup2_2->vol=280;
+	headgroup1_2->fnSetnSL(8.4513e-4,1.1576E-03);
+	headgroup2_2->fnSetnSL(8.4513e-4,1.1576E-03);
+	headgroup1_2->l=8.1;
+	headgroup2_2->l=8.1;
+	
+    volacyllipid_2=925;
+    nslacyllipid_2=-2.67e-4;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+	headgroup1_3->vol=174;                //was 174
+	headgroup2_3->vol=174;                //was 174
+	headgroup1_3->nSL=6.2364e-4;          //was 6.2364e-4
+	headgroup2_3->nSL=6.2364e-4;          //was 6.2364e-4
+	headgroup1_3->l=5;
+	headgroup2_3->l=5;
+	
+    volacyllipid_3=925;
+    nslacyllipid_3=-2.67e-4;
+    volmethyllipid_3=98.8;
+    nslmethyllipid_3=-9.15e-5;
+ 
+    fnAdjustParameters();
+    
+}
+
 
 
 //------------------------------------------------------------------------------------------------------
