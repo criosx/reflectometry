@@ -1,165 +1,0 @@
-TProteinSlicer
-v5
-r1
-cCheck dependencies
-cCompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler
-cLd /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer normal i386
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/ProteinSlicer.LinkFileList
-c0000000051B6686800000000000000B4
-t1370908776
-s180
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o
-t1371845538
-s32692
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer
-t1371845538
-s34884
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c
-c0000000051B6290D000000000000889E
-t1370892557
-s34974
-i<stdlib.h>
-i<stdio.h>
-i<string.h>
-i<math.h>
-i"main.h"
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h
-c0000000051C4B4C30000000000006616
-t1371845827
-s26134
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/ProteinSlicer.LinkFileList
-c0000000051C4B50E00000000000000C1
-t1371845902
-s193
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o
-t1371845549
-s32692
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer
-t1371845549
-s34884
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c
-c0000000051B6290D000000000000889E
-t1370892557
-s34974
-i<stdlib.h>
-i<stdio.h>
-i<string.h>
-i<math.h>
-i"main.h"
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.h
-c0000000051C4B50E0000000000006616
-t1371845902
-s26134
-
-N/usr/include/math.h
-c0000000050A55CFB00000000000066C2
-t1353014523
-s26306
-
-N/usr/include/stdio.h
-c0000000050A55CF30000000000004523
-t1353014515
-s17699
-
-N/usr/include/stdlib.h
-c0000000050A55CF30000000000003089
-t1353014515
-s12425
-
-N/usr/include/string.h
-c0000000050A55CF30000000000001A3A
-t1353014515
-s6714
-
-CBuild AST from /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c
-r0
-
-CBuild AST from /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c
-r0
-
-CCheck dependencies
-r0
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection18"Check dependencies0071778eec74b741^f44e798eec74b741^---0#1#0#--18"Check dependencies36"31E531FB-E627-4FF6-AEFE-E1CD20C60DE8-
-
-CCompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler
-s393538349.435763
-e393538349.553371
-r1
-xCompileC
-xDerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o
-x/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c
-xnormal
-xi386
-xc
-xcom.apple.compilers.llvm.clang.1_0.compiler
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:91:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]
-o        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])==0))   //look for match in table
-o                                                                                 ^~~~~~~~~~~~~~~~~~~~
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:960:39: note: passing argument to parameter 'cTableEntry' here
-oint  strcpprot(char *cAtomName, char *cTableEntry);
-o                                      ^
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:246:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]
-o        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])== 0))   //look for match in table
-o                                                                                 ^~~~~~~~~~~~~~~~~~~~
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:960:39: note: passing argument to parameter 'cTableEntry' here
-oint  strcpprot(char *cAtomName, char *cTableEntry);
-o                                      ^
-o2 warnings generated.
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection72"Compile /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c5ea16f2deb74b741^22a98d2deb74b741^-1314"/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:91:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])==0))   //look for match in table                                                                                 ^~~~~~~~~~~~~~~~~~~~/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:960:39: note: passing argument to parameter 'cTableEntry' hereint  strcpprot(char *cAtomName, char *cTableEntry);                                      ^/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:246:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])== 0))   //look for match in table                                                                                 ^~~~~~~~~~~~~~~~~~~~/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:960:39: note: passing argument to parameter 'cTableEntry' hereint  strcpprot(char *cAtomName, char *cTableEntry);                                      ^2 warnings generated.2(36%IDEClangDiagnosticActivityLogMessage2@74"Passing 'const char [6]' to parameter of type 'char *' discards qualifiers-393538349#18446744073709551615#0#1(2@48"Passing argument to parameter 'cTableEntry' here-393538349#18446744073709551615#0#-0#27"com.apple.dt.IDE.diagnostic23%DVTTextDocumentLocation3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h0000000000000000^959#38#959#38#25930#0#14"Semantic Issue--1#27"com.apple.dt.IDE.diagnostic3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^90#81#90#81#3801#0#14"Semantic Issue1(3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^90#81#90#101#3801#19#-2@74"Passing 'const char [6]' to parameter of type 'char *' discards qualifiers-393538349#18446744073709551615#0#1(2@48"Passing argument to parameter 'cTableEntry' here-393538349#18446744073709551615#0#-0#27"com.apple.dt.IDE.diagnostic3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h0000000000000000^959#38#959#38#25930#0#14"Semantic Issue--1#27"com.apple.dt.IDE.diagnostic3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^245#81#245#81#10393#0#14"Semantic Issue1(3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^245#81#245#101#10393#19#-0#0#0#-19%DVTDocumentLocation4@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^2694"CompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o main.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler    cd /Users/frank/Documents/programming/ProteinSlicer/Combined    setenv LANG en_US.US-ASCII    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -arch i386 -fmessage-length=0 -Wno-trigraphs -fpascal-strings -Os -Wno-missing-field-initializers -Wno-missing-prototypes -Wreturn-type -Wformat -Wno-missing-braces -Wparentheses -Wswitch -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wno-empty-body -Wno-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wno-constant-conversion -Wno-int-conversion -Wno-enum-conversion -Wno-shorten-64-to-32 -Wpointer-sign -Wno-newline-eof -fasm-blocks -fstrict-aliasing -Wdeprecated-declarations -fvisibility=hidden -Wno-sign-conversion -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/ProteinSlicer.hmap -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/DerivedSources/i386 -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/DerivedSources -F/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment -MMD -MT dependencies -MF /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.d --serialize-diagnostics /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.dia -c /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c -o /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o36"C7474CC9-C1E5-4BB7-B689-AEA319D2A296-
-
-CCompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler
-s393538702.475136
-e393538702.616485
-r1
-xCompileC
-xDerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o
-x/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c
-xnormal
-xi386
-xc
-xcom.apple.compilers.llvm.clang.1_0.compiler
-o/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c:91:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]
-o        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])==0))   //look for match in table
-o                                                                                 ^~~~~~~~~~~~~~~~~~~~
-o/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.h:960:39: note: passing argument to parameter 'cTableEntry' here
-oint  strcpprot(char *cAtomName, char *cTableEntry);
-o                                      ^
-o/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c:246:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]
-o        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])== 0))   //look for match in table
-o                                                                                 ^~~~~~~~~~~~~~~~~~~~
-o/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.h:960:39: note: passing argument to parameter 'cTableEntry' here
-oint  strcpprot(char *cAtomName, char *cTableEntry);
-o                                      ^
-o2 warnings generated.
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection85"Compile /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c84b9798eec74b741^81d19d8eec74b741^-1366"/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c:91:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])==0))   //look for match in table                                                                                 ^~~~~~~~~~~~~~~~~~~~/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.h:960:39: note: passing argument to parameter 'cTableEntry' hereint  strcpprot(char *cAtomName, char *cTableEntry);                                      ^/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c:246:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])== 0))   //look for match in table                                                                                 ^~~~~~~~~~~~~~~~~~~~/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.h:960:39: note: passing argument to parameter 'cTableEntry' hereint  strcpprot(char *cAtomName, char *cTableEntry);                                      ^2 warnings generated.2(36%IDEClangDiagnosticActivityLogMessage2@74"Passing 'const char [6]' to parameter of type 'char *' discards qualifiers-393538702#18446744073709551615#0#1(2@48"Passing argument to parameter 'cTableEntry' here-393538702#18446744073709551615#0#-0#27"com.apple.dt.IDE.diagnostic23%DVTTextDocumentLocation3@93"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.h0000000000000000^959#38#959#38#25929#0#14"Semantic Issue--1#27"com.apple.dt.IDE.diagnostic3@93"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c0000000000000000^90#81#90#81#3801#0#14"Semantic Issue1(3@93"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c0000000000000000^90#81#90#101#3801#19#-2@74"Passing 'const char [6]' to parameter of type 'char *' discards qualifiers-393538702#18446744073709551615#0#1(2@48"Passing argument to parameter 'cTableEntry' here-393538702#18446744073709551615#0#-0#27"com.apple.dt.IDE.diagnostic3@93"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.h0000000000000000^959#38#959#38#25929#0#14"Semantic Issue--1#27"com.apple.dt.IDE.diagnostic3@93"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c0000000000000000^245#81#245#81#10393#0#14"Semantic Issue1(3@93"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c0000000000000000^245#81#245#101#10393#19#-0#0#0#-19%DVTDocumentLocation4@93"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c0000000000000000^2824"CompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o main.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler    cd /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein    setenv LANG en_US.US-ASCII    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -arch i386 -fmessage-length=0 -Wno-trigraphs -fpascal-strings -Os -Wno-missing-field-initializers -Wno-missing-prototypes -Wreturn-type -Wformat -Wno-missing-braces -Wparentheses -Wswitch -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wno-empty-body -Wno-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wno-constant-conversion -Wno-int-conversion -Wno-enum-conversion -Wno-shorten-64-to-32 -Wpointer-sign -Wno-newline-eof -fasm-blocks -fstrict-aliasing -Wdeprecated-declarations -fvisibility=hidden -Wno-sign-conversion -I/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/ProteinSlicer.hmap -I/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/DerivedSources/i386 -I/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/DerivedSources -F/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment -MMD -MT dependencies -MF /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.d --serialize-diagnostics /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.dia -c /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/main.c -o /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/main.o36"F77484F2-1802-4858-B62A-859A047E9B36-
-
-CLd /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer normal i386
-s393538349.560341
-e393538349.577151
-r1
-xLd
-x/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer
-xnormal
-xi386
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection127"Link /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer4d828f2deb74b741^5dc0932deb74b741^---0#0#0#--811"Ld DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer normal i386    cd /Users/frank/Documents/programming/ProteinSlicer/Combined    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -arch i386 -L/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment -F/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment -filelist /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/ProteinSlicer.LinkFileList -o /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer36"02E5AB98-FEED-42C1-AB50-4CEB06EF5CDF-
-
-CLd /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer normal i386
-s393538702.623325
-e393538703.425973
-r1
-xLd
-x/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer
-xnormal
-xi386
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection140"Link /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer2fa49f8eec74b741^d40c6d8fec74b741^---0#0#0#--876"Ld DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer normal i386    cd /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -arch i386 -L/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment -F/Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment -filelist /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Deployment/ProteinSlicer.build/Objects-normal/i386/ProteinSlicer.LinkFileList -o /Users/frank/Documents/programming/ProteinSlicer/Combined_prot_protein/DerivedData/VolumeSlicer/Build/Products/Deployment/ProteinSlicer36"29C216B9-0B97-49B4-BDEB-A82567850A1C-
-

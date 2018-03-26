@@ -6,13 +6,13 @@
 #issues: ISIS data files cannot contain headerline without specifier as they normally do, this will
 #        lead to MC not starting up
 
-from math import fabs, pow, floor, ceil, sqrt, log10
+from math import fabs, pow, floor, ceil, sqrt, log10, log
 from numpy import cumsum, subtract, minimum, maximum, sum, average, array, mean, std
 from operator import itemgetter
 from os import getcwd, remove, rename, path, kill, devnull
 from random import seed, normalvariate, random
 from re import VERBOSE, IGNORECASE, compile
-from scipy import stats, sqrt, special
+from scipy import stats, sqrt, special, ndimage, signal
 from shutil import rmtree
 from string import split
 from sys import argv, exit
@@ -535,6 +535,286 @@ class CReflectometry:
         call("cp " + self.setupfilename + " rsbackup/", shell=True)
         pr = Popen(["cp", "setup.o", "rsbackup/"])
         pr.wait()
+
+    #-------------------------------------------------------------------------------
+
+    def fnCalculateEntropy(self, mcmcburn=16000, mcmcsteps=5000, deldir=True, convergence=2.0, miniter = 1, mode='water'):
+
+    # calculates entropy while varying a set of parameters in parlist and
+    # keeping others fixed as specified in simpar.dat
+    # requires a compiled and ready to go fit whose fit parameters are modified and fixed
+
+        def average(alist):
+
+            notfinished = True
+            while notfinished:
+                s = numpy.std(alist)
+                result = numpy.mean(alist)
+
+                maxs = 0
+                for element in alist:
+                    s2 = fabs(result-element)
+                    if s2 > maxs:
+                        maxs = s2
+                        val = element
+                if maxs > 3*s:
+                    alist.remove(val)
+                else:
+                    notfinished = False
+
+            return result
+
+        # multidimensional convolution of nearest horizontal, vertical, and diagonal neighbors but not the center
+        def convolute(a):
+            conv_arr = numpy.zeros(a.shape)
+            offsetshape = tuple(3 for i in range(len(a.shape)))
+            offsetparent = numpy.zeros(offsetshape)
+            it = numpy.nditer(conv_arr, flags=['multi_index'])
+            while not it.finished:
+                itindex = tuple(it.multi_index[i] for i in range(len(a.shape)))
+                it2 = numpy.nditer(offsetparent, flags=['multi_index'])
+                result = 0.0
+                counter = 0.0
+                while not it2.finished:
+                    itindex2 = tuple(it2.multi_index[i]-1 for i in range(len(a.shape)))
+                    allzero = True
+                    for element in itindex2:
+                        if element != 0:
+                            allzero = False
+                    if not allzero:
+                        index = tuple(itindex[i] + itindex2[i] for i in range(len(itindex)))
+                        inarray = True
+                        for i, element in enumerate(index):
+                            if element < 0 or element >= a.shape[i]:
+                                inarray = False
+                        if inarray:
+                            result += a[index]
+                            counter += 1.0
+                    it2.iternext()
+
+                conv_arr[itindex] = result/counter
+                it.iternext()
+
+            return conv_arr
+
+        def parseentropy(iteration):
+            # retrieves mvn and kde entropy from run.mon
+            file1 = open('iteration_' + str(iteration) + '/run.mon', 'r')
+            lines = file1.readlines()
+            file1.close()
+
+            mvn = 1e99
+            kde = 1e99
+            for k in lines[-20:]:
+                if k.find('Entropy from MVN:') != -1:
+                    tmp = k.split('=')[-1].split('bits')[0]
+                    if tmp.find('(') != -1:
+                        tmp = tmp.split('(')[0]
+                    # print 'MVN Entropy = '+`float(tmp)`
+                    mvn = float(tmp)
+                elif k.find('Entropy:') != -1:
+                    tmp = k.split(':')[-1].split('bits')[0]
+                    if tmp.find('(') != -1:
+                        tmp_entropy = float(tmp[:tmp.find('(')] + tmp[tmp.find(')') + 1:])
+                    else:
+                        tmp_entropy = float(tmp)
+                    # print 'Entropy = '+`float(tmp)`
+                    kde = tmp_entropy
+
+            return mvn, kde
+
+        def runmcmc(iteration, mcmcburn, mcmcsteps):
+
+            # remove all MCMC directories
+            call(['rm', '-r', 'MCMC_*'])
+
+            # run MCMC
+            self.fnMake()
+            lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+            lCommand.append('--store=iteration_' + str(iteration))
+            lCommand.append('--burn=' + str(mcmcburn))
+            lCommand.append('--steps=' + str(mcmcsteps))
+            call(lCommand)
+
+
+        # all parameters from entropypar.dat
+        allpar = pandas.read_csv('entropypar.dat', sep=' ', header=None,
+                                     names=['type', 'par', 'value', 'l_fit', 'u_fit', 'l_sim', 'u_sim', 'step_sim'],
+                                     skip_blank_lines=True, comment='#')
+
+        # only those parameters that will be varied
+        steppar = allpar.dropna(axis=0)
+        # create data frame for simpar.dat needed by the reflectivity simulation routine
+        simpar = allpar.loc[:,['par', 'value']]
+
+        steplist = []
+        for row in steppar.itertuples():
+            steps = int((row.u_sim - row.l_sim) /row.step_sim) + 1
+            steplist.append(steps)
+
+        if path.isfile('MVN_entropy.npy'):
+            results_MVN = numpy.load('MVN_entropy.npy')
+            results_KDE = numpy.load('KDE_entropy.npy')
+            if path.isfile('MVN_n.npy'):
+                n_MVN = numpy.load('MVN_n.npy')
+                n_KDE = numpy.load('KDE_n.npy')
+                sqstd_MVN = numpy.load('MVN_sqstd.npy')
+                sqstd_KDE = numpy.load('KDE_sqstd.npy')
+            else:
+                n_MVN = numpy.ones(results_MVN.shape)
+                n_KDE = numpy.ones(results_KDE.shape)
+                sqstd_MVN = numpy.zeros(results_MVN.shape)
+                sqstd_KDE = numpy.zeros(results_KDE.shape)
+        else:
+            results_MVN = numpy.zeros(steplist)
+            results_KDE = numpy.zeros(steplist)
+            n_MVN = numpy.zeros(results_MVN.shape)
+            n_KDE = numpy.zeros(results_KDE.shape)
+            sqstd_MVN = numpy.zeros(results_MVN.shape)
+            sqstd_KDE = numpy.zeros(results_KDE.shape)
+
+        repeats = True
+        while repeats:
+
+            repeats = False
+            it = numpy.nditer(results_KDE, flags=['multi_index'])
+            iteration = 0
+            while not it.finished:
+
+                itindex = tuple(it.multi_index[i] for i in range(len(steplist)))
+
+                #run MCMC if it is first time or the value in results is inf
+                first_condition = numpy.isinf(results_KDE[itindex])
+                second_condition = n_MVN[itindex] < miniter
+                if not first_condition or second_condition:
+                    # if a valid result exists, check whether the KDE value follows that of the MVN
+                    # with respect to its nearest neighbors
+
+                    # implemented own convolution because of ill-defined origin of scipy convolute
+                    conv_MVN = convolute(results_MVN)
+                    conv_KDE = convolute(results_KDE)
+
+                    dMVN = conv_MVN[itindex] - results_MVN[itindex]
+                    dKDE = conv_KDE[itindex] - results_KDE[itindex]
+
+                    if fabs(dMVN-dKDE) > convergence:
+                        second_condition = True
+
+                if first_condition or second_condition:
+
+                    repeats = True
+                    # set up fit limits and simulation parameters including parameters that are varied and
+                    # fixed during the process
+                    isim = 0
+                    priorentropy = 0
+                    for row in allpar.itertuples():  # cycle through all parameters
+                        if row.par in steppar['par'].tolist():
+                            lsim = steppar.loc[steppar['par']==row.par, 'l_sim'].iloc[0]
+                            stepsim = steppar.loc[steppar['par']==row.par, 'step_sim'].iloc[0]
+                            value = steppar.loc[steppar['par']==row.par, 'value'].iloc[0]
+                            lfit = steppar.loc[steppar['par']==row.par, 'l_fit'].iloc[0]
+                            ufit = steppar.loc[steppar['par']==row.par, 'u_fit'].iloc[0]
+
+                            simvalue = lsim + stepsim * it.multi_index[isim]
+                            lowersim = simvalue - (value - lfit)
+                            uppersim = simvalue + (ufit - value)
+
+                            simpar.loc[simpar['par'] == row.par, 'value'] = simvalue
+
+                            self.fnReplaceParameterLimitsInSetup(row.par, lowersim, uppersim)
+
+                            if 'rho' in row.par:
+                                priorentropy += log((uppersim-lowersim)*1e6)/log(2)
+                            else:
+                                priorentropy += log(uppersim-lowersim)/log(2)
+
+                            isim +=1
+                        else:
+                            self.fnReplaceParameterLimitsInSetup(row.par, row.l_fit, row.u_fit)
+                            if 'rho' in row.par:
+                                priorentropy += log((row.u_fit-row.l_fit)*1e6)/log(2)
+                            else:
+                                priorentropy += log(row.u_fit-row.l_fit)/log(2)
+
+                    simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
+
+                    if mode == 'air':
+                        self.fnSimulateReflectivity(cbmatmin=1e-6, cbmatmax=1e-6)
+                    else:
+                        self.fnSimulateReflectivity()
+
+                    runmcmc(iteration, mcmcburn, mcmcsteps)
+
+                    # Calculate Entropy 10 times and average
+                    mvn_entropy = []
+                    kde_entropy = []
+                    for j in range(10):
+
+                        # calculate entropy
+                        lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--batch', '--entropy']
+                        lCommand.append('--resume=iteration_' + str(iteration))
+                        lCommand.append('--store=iteration_' + str(iteration))
+                        lCommand.append('--burn=0')
+                        lCommand.append('--steps=' + str(mcmcsteps))
+                        call(lCommand)
+
+                        a, b = parseentropy(iteration)
+                        mvn_entropy.append(a)
+                        kde_entropy.append(b)
+
+                    # remove outliers and average calculated entropies
+                    avg_MVN = average(mvn_entropy)
+                    avg_KDE = average(kde_entropy)
+
+                    if first_condition and fabs(avg_KDE - avg_MVN) < 3*convergence:
+                        # first or previous invalid result, simply write out new result
+                        results_MVN[itindex] = avg_MVN
+                        results_KDE[itindex] = avg_KDE
+
+                        n_KDE[itindex] = 1.0
+                        n_MVN[itindex] = 1.0
+                    elif fabs(avg_KDE - avg_MVN) < 3*convergence:
+                        n_KDE[itindex] += 1.0
+                        n_MVN[itindex] += 1.0
+                        n = n_KDE[itindex]
+
+                        old_MVN = results_MVN[itindex]
+                        old_KDE = results_KDE[itindex]
+                        results_MVN[itindex] = results_MVN[itindex] * (n - 1) / n + avg_MVN * (1 / n)
+                        results_KDE[itindex] = results_KDE[itindex] * (n - 1) / n + avg_KDE * (1 / n)
+
+                        # see Tony Finch, Incremental calculation of weighted mean and variance
+                        sqstd_MVN[itindex] = sqstd_MVN[itindex] + (avg_MVN - old_MVN) * (avg_MVN - results_MVN[itindex])
+                        sqstd_KDE[itindex] = sqstd_KDE[itindex] + (avg_KDE - old_KDE) * (avg_KDE - results_KDE[itindex])
+
+                    #save results every iteration
+                    numpy.save('KDE_entropy', results_KDE, allow_pickle=False)
+                    numpy.save('MVN_entropy', results_MVN, allow_pickle=False)
+                    numpy.save('KDE_infocontent', priorentropy - results_KDE, allow_pickle=False)
+                    numpy.save('MVN_infocontent', priorentropy - results_MVN, allow_pickle=False)
+                    numpy.save('KDE_sqstd', sqstd_KDE, allow_pickle=False)
+                    numpy.save('MVN_sqstd', sqstd_MVN, allow_pickle=False)
+                    numpy.save('KDE_n', n_KDE, allow_pickle=False)
+                    numpy.save('MVN_n', n_MVN, allow_pickle=False)
+
+                    if deldir:
+                        call(['rm', 'iteration_'+str(iteration)+'/run-point.mc'])
+                        call(['rm', 'iteration_'+str(iteration)+'/run-chain.mc'])
+                        call(['rm', 'iteration_'+str(iteration)+'/run-stats.mc'])
+
+                    # save to txt when not more than two-dimensional array
+                    if len(steplist) <= 2:
+                        numpy.savetxt('MVN_entropy.txt', results_MVN)
+                        numpy.savetxt('KDE_entropy.txt', results_KDE)
+                        numpy.savetxt('MVN_infocontent.txt', priorentropy - results_MVN)
+                        numpy.savetxt('KDE_infocontent.txt', priorentropy - results_KDE)
+                        numpy.savetxt('MVN_sqstd.txt', sqstd_MVN)
+                        numpy.savetxt('KDE_sqstd.txt', sqstd_KDE)
+                        numpy.savetxt('MVN_n.txt', n_MVN)
+                        numpy.savetxt('KDE_n.txt', n_KDE)
+
+                iteration += 1
+                it.iternext()
 
     #-------------------------------------------------------------------------------
 
@@ -2536,6 +2816,7 @@ class CReflectometry:
             call(["sync"])  #synchronize file system
             sleep(1)  #wait for system to clean up
             i=0
+            last_defined_rho_solv = 0
             while path.isfile('fit'+str(i)+'.dat'):
                 simdata=pandas.read_csv('fit'+str(i)+'.dat', sep=' ', header=None, names=['Q', 'dQ', 'R', 'dR', 'fit'], skip_blank_lines=True, comment='#')
                 del simdata['dQ']
@@ -2549,7 +2830,15 @@ class CReflectometry:
                 c4=(tmax-tmin)/(qmax**2-qmin**2)
                 c3=tmax-c4*qmax**2
                 I=nmin/s1min/s2min/tmin
-                rhosolv=simpar[simpar.par==('rho_solv_'+str(i))].iloc[0][1]
+
+                # dataframe can be empty in case that rho_solv_i is not specified
+                # for example in magnetic fits, in this case, restart from zero
+                if simpar[simpar.par==('rho_solv_'+str(i))].empty:
+                    ii = last_defined_rho_solv + 1
+                    rhosolv=simpar[simpar.par==('rho_solv_'+str(i - ii))].iloc[0][1]
+                else:
+                    rhosolv=simpar[simpar.par==('rho_solv_'+str(i))].iloc[0][1]
+                    last_defined_rho_solv = i
                 if fabs(rhosolv)>1E-4:
                     rhosolv=rhosolv*1E-6
 
@@ -3757,7 +4046,8 @@ if __name__ == '__main__':
 
         ReflPar = CReflectometry()
 
-        for i in range(1, len(argv)):
+        i=1
+        while i < len(argv):
             arg = argv[i]
             if argv[i][0] != '-':
                 sPath = argv[i]
@@ -3779,6 +4069,32 @@ if __name__ == '__main__':
             elif argv[i] == '-contrast':
                 iContrast = int(argv[i + 1])
                 i += 1
+            elif argv[i] == '-entropy':
+                i += 1
+                burn = 16000
+                steps = 5000
+                convergence =2.0
+                miniter = 1
+                mode = 'water'
+                while i < len(argv):
+                    if argv[i] == '-burn':
+                        burn = int(argv[i+1])
+                        i += 2
+                    elif argv[i] == '-steps':
+                        steps = int(argv[i+1])
+                        i += 2
+                    elif argv[i] == '-convergence':
+                        convergence = int(argv[i+1])
+                        i += 2
+                    elif argv[i] == '-miniter':
+                        miniter = int(argv[i+1])
+                        i += 2
+                    elif argv[i] == '-mode':
+                        mode = argv[i+1]
+                        i += 2
+                ReflPar.fnCalculateEntropy(mcmcburn=burn, mcmcsteps=steps, convergence=convergence, miniter=miniter,
+                                           mode=mode)
+                break
             elif argv[i] == '-f':
                 if len(argv) > i + 1:
                     fConvergence = float(argv[i + 1])
@@ -3916,6 +4232,8 @@ if __name__ == '__main__':
             elif argv[i] == '-stattable':
                 iStatTable = 1
                 sTableTemplate = argv[i + 1]
+
+            i += 1
 
         if iAutoFinish == 1:
             AutoFinish(fConvergence, sPath)

@@ -4249,6 +4249,38 @@ double Discrete::fnGetnSLD(double dz) {
 //Use limits of molecular subgroups
 double Discrete::fnGetLowerLimit() {return (dStartPosition);}
 double Discrete::fnGetUpperLimit() {return (dStartPosition+double(iNumberOfPoints)*dZSpacing);}
+double Discrete::fnGetVolume(double dz1, double dz2) {
+    
+    double d, temp, integral;
+    
+    if (dz1>dz2){
+        temp=dz2;
+        dz2=dz1;
+        dz1=temp;
+    }
+    
+    //check for boundaries
+    if (dz1<dStartPosition) {dz1=dStartPosition;}
+    if (dz1>dz2) {
+        return 0;
+    }
+    if (dz2>dStartPosition + double(iNumberOfPoints)*dZSpacing) {dz2=dStartPosition + double(iNumberOfPoints)*dZSpacing;}
+    
+    d=dz1; integral=0;
+    while (1) {
+        if ((d+dZSpacing)<dz2) {
+            integral+=fnGetArea(d)*dZSpacing;
+            d+=dZSpacing;
+        }
+        else {
+            integral+=fnGetArea(d)*(dz2-d);
+            break;
+        }
+    }
+    
+    return integral;
+};
+
 
 void Discrete::fnSet(double _startposition, double _protonexchange, double _nsldbulksolvent, double _nf, double _normarea) {
     
@@ -5560,8 +5592,7 @@ ssBLM_d31POPC::ssBLM_d31POPC()
     volacyllipid=925;
     nslacyllipid=2.9618E-03;
     volmethyllipid=98.8;
-    nslmethyllipid=5.334e-4;
-    
+    nslmethyllipid=2.2087e-4;
     fnAdjustParameters();
 }
 
@@ -5842,7 +5873,7 @@ tBLM_HC18_d31POPC::tBLM_HC18_d31POPC()
     volacyllipid=925;
     nslacyllipid=2.9618E-03;
     volmethyllipid=98.8;
-    nslmethyllipid=5.334e-4;
+    nslmethyllipid=2.2087e-4;
     volmethyltether=98.8;
     nslmethyltether=-9.15e-5;
     volacyltether=999;
@@ -6019,7 +6050,7 @@ tBLM_HC18_d31POPC_POPS::tBLM_HC18_d31POPC_POPS()
     volacyllipid=925;
     nslacyllipid=2.9618E-03;
     volmethyllipid=98.8;
-    nslmethyllipid=5.334e-4;
+    nslmethyllipid=2.2087e-4;
     volmethyltether=98.8;
     nslmethyltether=-9.15e-5;
     volacyltether=999;

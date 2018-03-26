@@ -155,6 +155,7 @@ public:
     virtual double fnGetnSLD(double dz);
     virtual double fnGetLowerLimit();
     virtual double fnGetUpperLimit();
+    virtual double fnGetVolume(double dz1, double dz2);
     virtual void fnSet(double _startposition, double _protonexchange, double _nsldbulksolvent, double _nf, double _normarea);
     virtual void fnSetNormarea(double dnormarea);
     virtual void fnSetSigma(double _sigma);

@@ -7,7 +7,7 @@
  *
  */
 
-#define MATRIXSIZE 260
+#define MATRIXSIZE 110
 #define UNITSIZE 0.5
 #define PROBERADIUS 1.4 //1.4
 #define RECURSIVECALLMAX 20000
@@ -22,7 +22,7 @@
 
 // if BATCHMODE is OFF (0) for single file processing, use filename and
 // FilenameWrite
-#define BATCHMODE 1
+#define BATCHMODE 0
 #define TILTSTART 0 //was 0
 #define TILTEND 185  // was 185
 #define TILTSTEP 5
@@ -36,8 +36,8 @@
 
 char strPath[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/4G0N_RAS_RBD_complex/";
 char strFileNameRoot[20]="protein";
-char filename[250]="/Users/frank/Documents/projects/proteins/antibody/Cavan/structure_modeling/protein.pdb";
-char FilenameWrite[250]="/Users/frank/Documents/projects/proteins/antibody/Cavan/structure_modeling/protein.txt";
+char filename[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/KRAS-GppNHp/proteinFH.pdb";
+char FilenameWrite[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/KRAS-GppNHp/proteinFH.txt";
 
 // volume matrix starts from 0 positon to matrix -> ceil(pos/unit)
 // value description:
