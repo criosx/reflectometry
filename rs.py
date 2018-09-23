@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Reflscript for ga_refl 9-Dec-2010 F.H.
-# Modified 30-Dec-2016 F.H.
+# Modified 30-Apr-2018 F.H.
 
-#issues: ISIS data files cannot contain headerline without specifier as they normally do, this will
+# issues: ISIS data files cannot contain headerline without specifier as they normally do, this will
 #        lead to MC not starting up
 
 from math import fabs, pow, floor, ceil, sqrt, log10, log
@@ -562,7 +562,7 @@ class CReflectometry:
                 else:
                     notfinished = False
 
-            return result
+            return result, s
 
         # multidimensional convolution of nearest horizontal, vertical, and diagonal neighbors but not the center
         def convolute(a):
@@ -684,7 +684,7 @@ class CReflectometry:
                 itindex = tuple(it.multi_index[i] for i in range(len(steplist)))
 
                 #run MCMC if it is first time or the value in results is inf
-                first_condition = numpy.isinf(results_KDE[itindex])
+                first_condition = numpy.isinf(results_KDE[itindex]) or fabs(results_KDE[itindex]) > 10000
                 second_condition = n_MVN[itindex] < miniter
                 if not first_condition or second_condition:
                     # if a valid result exists, check whether the KDE value follows that of the MVN
@@ -707,6 +707,8 @@ class CReflectometry:
                     # fixed during the process
                     isim = 0
                     priorentropy = 0
+                    qrange = 0
+                    pre = 0
                     for row in allpar.itertuples():  # cycle through all parameters
                         if row.par in steppar['par'].tolist():
                             lsim = steppar.loc[steppar['par']==row.par, 'l_sim'].iloc[0]
@@ -719,16 +721,19 @@ class CReflectometry:
                             lowersim = simvalue - (value - lfit)
                             uppersim = simvalue + (ufit - value)
 
-                            simpar.loc[simpar['par'] == row.par, 'value'] = simvalue
-
-                            self.fnReplaceParameterLimitsInSetup(row.par, lowersim, uppersim)
-
-                            if 'rho' in row.par:
-                                priorentropy += log((uppersim-lowersim)*1e6)/log(2)
+                            if row.par == 'qrange':
+                                qrange = simvalue
+                            elif row.par == 'prefactor':
+                                pre = simvalue
                             else:
-                                priorentropy += log(uppersim-lowersim)/log(2)
+                                simpar.loc[simpar['par'] == row.par, 'value'] = simvalue
+                                self.fnReplaceParameterLimitsInSetup(row.par, lowersim, uppersim)
+                                if 'rho' in row.par:
+                                    priorentropy += log((uppersim-lowersim)*1e6)/log(2)
+                                else:
+                                    priorentropy += log(uppersim-lowersim)/log(2)
 
-                            isim +=1
+                            isim += 1
                         else:
                             self.fnReplaceParameterLimitsInSetup(row.par, row.l_fit, row.u_fit)
                             if 'rho' in row.par:
@@ -737,11 +742,7 @@ class CReflectometry:
                                 priorentropy += log(row.u_fit-row.l_fit)/log(2)
 
                     simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
-
-                    if mode == 'air':
-                        self.fnSimulateReflectivity(cbmatmin=1e-6, cbmatmax=1e-6)
-                    else:
-                        self.fnSimulateReflectivity()
+                    self.fnSimulateReflectivity(mode=mode, pre=pre, qrange=qrange)
 
                     runmcmc(iteration, mcmcburn, mcmcsteps)
 
@@ -763,17 +764,17 @@ class CReflectometry:
                         kde_entropy.append(b)
 
                     # remove outliers and average calculated entropies
-                    avg_MVN = average(mvn_entropy)
-                    avg_KDE = average(kde_entropy)
+                    avg_MVN, std_MVN = average(mvn_entropy)
+                    avg_KDE, std_KDE = average(kde_entropy)
 
-                    if first_condition and fabs(avg_KDE - avg_MVN) < 3*convergence:
+                    if first_condition and std_KDE < convergence:
                         # first or previous invalid result, simply write out new result
                         results_MVN[itindex] = avg_MVN
                         results_KDE[itindex] = avg_KDE
 
                         n_KDE[itindex] = 1.0
                         n_MVN[itindex] = 1.0
-                    elif fabs(avg_KDE - avg_MVN) < 3*convergence:
+                    elif std_KDE < convergence:
                         n_KDE[itindex] += 1.0
                         n_MVN[itindex] += 1.0
                         n = n_KDE[itindex]
@@ -784,8 +785,10 @@ class CReflectometry:
                         results_KDE[itindex] = results_KDE[itindex] * (n - 1) / n + avg_KDE * (1 / n)
 
                         # see Tony Finch, Incremental calculation of weighted mean and variance
-                        sqstd_MVN[itindex] = sqstd_MVN[itindex] + (avg_MVN - old_MVN) * (avg_MVN - results_MVN[itindex])
-                        sqstd_KDE[itindex] = sqstd_KDE[itindex] + (avg_KDE - old_KDE) * (avg_KDE - results_KDE[itindex])
+                        sqstd_MVN[itindex] = (sqstd_MVN[itindex] *(n-1) +
+                                              (avg_MVN - old_MVN) * (avg_MVN - results_MVN[itindex]))/n
+                        sqstd_KDE[itindex] = (sqstd_KDE[itindex] *(n-1) +
+                                              (avg_KDE - old_KDE) * (avg_KDE - results_KDE[itindex]))/n
 
                     #save results every iteration
                     numpy.save('KDE_entropy', results_KDE, allow_pickle=False)
@@ -2781,9 +2784,36 @@ class CReflectometry:
 
 
     #-------------------------------------------------------------------------------
-    def fnSimulateReflectivity(self, qmin=0.008, qmax=0.325, s1min=0.108, s1max=4.397, s2min=0.108, s2max=4.397, tmin=18, tmax=208, nmin=11809, rhomin=-0.56e-6, rhomax=6.34e-6, cbmatmin=2.0e-5, cbmatmax=4.5e-6):
+    def fnSimulateReflectivity(self, qmin=0.008, qmax=0.325, s1min=0.108, s1max=4.397, s2min=0.108, s2max=4.397,
+                               tmin=18, tmax=208, nmin=11809, rhomin=-0.56e-6, rhomax=6.34e-6, cbmatmin=1.1e-5,
+                               cbmatmax=1.25e-6, mode='water', pre=1, qrange=0):
     #simulates reflectivity based on a parameter file called simpar.dat
     #requires a compiled and ready to go fit whose fit parameters are modified and fixed
+
+        def convert_fit_to_sim_data(i):
+            simdata = pandas.read_csv('fit' + str(i) + '.dat', sep=' ', header=None, names=['Q', 'dQ', 'R', 'dR', 'fit'],
+                                  skip_blank_lines=True, comment='#')
+            del simdata['dQ']
+            del simdata['R']
+            simdata = simdata.rename(columns={'fit': 'R'})
+            simdata = simdata[['Q', 'R', 'dR']]
+            return simdata
+
+        def simulate_data():
+            self.fnMake()  # compile changed setup.c
+            call(["rm", "-f", "mol.dat"])
+            call(["./fit", "-g"])  # write out profile.dat and fit.dat
+            call(["sync"])  # synchronize file system
+            sleep(1)  # wait for system to clean up
+
+        def backup_simdat(i):
+            if not path.isfile('simbackup'+str(i)+'.dat'):
+                pr = Popen(["cp", 'sim'+str(i)+'.dat', 'simbackup'+str(i)+'.dat'])
+                pr.wait()
+            else:
+                pr = Popen(["cp", 'simbackup'+str(i)+'.dat', 'sim'+str(i)+'.dat'])
+                pr.wait()
+
 
         self.fnLoadParameters(sPath)  #Load Parameters and modify setup.cc
         self.fnBackup()  #Backup setup.c, and other files
@@ -2810,39 +2840,60 @@ class CReflectometry:
                 liAddition.append(('%s = %s;\n' %  #change setup.c to quasi fix all parameters
                                    (self.diParameters[parameter]['variable'], parvaluefinal)))
             self.fnWriteConstraint2SetupC(liAddition)  #write out
-            self.fnMake()  #compile changed setup.c
-            call(["rm", "-f", "mol.dat"])
-            call(["./fit", "-g"])  #write out profile.dat and fit.dat
-            call(["sync"])  #synchronize file system
-            sleep(1)  #wait for system to clean up
+
+            # in case q-range is changing, make sure to back up original sim dat or reload this to preserve any
+            # changing q-steps in the original
+            i = 0
+            while path.isfile('fit'+str(i)+'.dat') and qrange != 0:
+                backup_simdat(i)
+                i += 1
+            # create first set of simulated data
+            simulate_data()
+
+            # extend simulated data to q-range as defined
+            i = 0
+            while path.isfile('fit'+str(i)+'.dat') and qrange != 0:
+                simdata = convert_fit_to_sim_data(i)
+                # first cut data at qrange
+                simdata = simdata[(simdata.Q <= qrange)]
+                #now add data points in case the q-range is too short
+                while simdata['Q'].iloc[-1] < qrange:
+                    newframe = pandas.DataFrame([[2*simdata['Q'].iloc[-1]-simdata['Q'].iloc[-2], 1, 1]],
+                                                columns=['Q', 'R', 'dR'])
+                    simdata = simdata.append(newframe)
+                simdata.to_csv('sim' + str(i) + '.dat', sep=' ', index=None)
+                i += 1
+
+            # redo simulation, now with correct length of data
+            simulate_data()
+
             i=0
             last_defined_rho_solv = 0
             while path.isfile('fit'+str(i)+'.dat'):
-                simdata=pandas.read_csv('fit'+str(i)+'.dat', sep=' ', header=None, names=['Q', 'dQ', 'R', 'dR', 'fit'], skip_blank_lines=True, comment='#')
-                del simdata['dQ']
-                del simdata['R']
-                simdata = simdata.rename(columns={'fit':'R'})
-                simdata= simdata[['Q', 'R', 'dR']]
+                simdata = convert_fit_to_sim_data(i)
 
-                #add error bars
-                c1=s1max/qmax
-                c2=s2max/qmax
-                c4=(tmax-tmin)/(qmax**2-qmin**2)
-                c3=tmax-c4*qmax**2
-                I=nmin/s1min/s2min/tmin
+                # add error bars
+                c1 = s1max/qmax
+                c2 = s2max/qmax
+                c4 = (tmax-tmin)/(qmax**2-qmin**2)
+                c3 = tmax-c4*qmax**2
+                I = nmin/s1min/s2min/tmin*pow(2,pre)
 
-                # dataframe can be empty in case that rho_solv_i is not specified
-                # for example in magnetic fits, in this case, restart from zero
-                if simpar[simpar.par==('rho_solv_'+str(i))].empty:
-                    ii = last_defined_rho_solv + 1
-                    rhosolv=simpar[simpar.par==('rho_solv_'+str(i - ii))].iloc[0][1]
+                if mode == 'air':
+                    # currently hardwire background for air
+                    cbmat = 1e-7
                 else:
-                    rhosolv=simpar[simpar.par==('rho_solv_'+str(i))].iloc[0][1]
-                    last_defined_rho_solv = i
-                if fabs(rhosolv)>1E-4:
-                    rhosolv=rhosolv*1E-6
+                    # dataframe can be empty in case that rho_solv_i is not specified
+                    # for example in magnetic fits, in this case, use last defined rho_solv
+                    if simpar[simpar.par==('rho_solv_'+str(i))].empty:
+                        rhosolv=simpar[simpar.par==('rho_solv_'+str(last_defined_rho_solv))].iloc[0][1]
+                    else:
+                        rhosolv=simpar[simpar.par==('rho_solv_'+str(i))].iloc[0][1]
+                        last_defined_rho_solv = i
+                    if fabs(rhosolv)>1E-4:
+                        rhosolv=rhosolv*1E-6
 
-                cbmat=(rhosolv-rhomin)/(rhomax-rhomin)*(cbmatmax-cbmatmin)+cbmatmin
+                    cbmat=(rhosolv-rhomin)/(rhomax-rhomin)*(cbmatmax-cbmatmin)+cbmatmin
 
                 simdata['dR']=0.0
 
@@ -2857,7 +2908,7 @@ class CReflectometry:
                     #    print index,ns,I,simdata.iloc[index,1],c1,c2,simdata.iloc[index,0],c3,c4,nb,dRoR,dR,simdata.iloc[index,2]
 
                 simdata.to_csv('sim'+str(i)+'.dat', sep=' ', index=None)
-                i+=1
+                i += 1
         finally:
             self.fnRemoveBackup()
 
@@ -4043,6 +4094,7 @@ if __name__ == '__main__':
         iSummarizeStatistic = 0
         iPullMolgroups = 0
         liMolgroups = []
+        prefactor = 1
 
         ReflPar = CReflectometry()
 
@@ -4226,7 +4278,17 @@ if __name__ == '__main__':
             elif argv[i] == '-r':
                 bResult = True
             elif argv[i] == '-sim':
-                ReflPar.fnSimulateReflectivity()
+                i += 1
+                mode = 'water'
+                if len(argv) > i+1:
+                    if argv[i] == '-mode':
+                        mode = argv[i + 1]
+                        i += 2
+                    if argv[i] == '-pre':
+                        prefactor = float(argv[i+1])
+                        i += 2
+                ReflPar.fnSimulateReflectivity(mode=mode, pre=prefactor)
+                break
             elif argv[i] == '-stat':
                 iSummarizeStatistic = 1
             elif argv[i] == '-stattable':

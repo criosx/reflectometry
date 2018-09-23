@@ -33,6 +33,8 @@ public:
 protected:
     virtual double CatmullInterpolate(double t, double pm1, double p0, double p1, double p2);
     virtual double fnTriCubicCatmullInterpolate(double p[4][4][4],double t[3]);
+    virtual double fnQuadCubicCatmullInterpolate(double p[4][4][4][4],double t[4]);
+
 };
 
 //------------------------------------------------------------------------------------------------------
@@ -214,6 +216,47 @@ private:
     int fn3Cto1C(int c1, int c2, int c3);
     
 	
+};
+//---------------------------------------------------------------------------------------------------------
+class DiscreteEulerSigma: public nSLDObj
+{
+    
+public:
+    
+    DiscreteEulerSigma(double dstartposition, double dnormarea, double dBetaStart, double dBetaEnd, double dBetaInc,
+                  double dGammaStart, double dGammaEnd, double dGammaInc, double dSigmaStart, double dSigmaEnd,
+                  double dSigmaInc, const char* strFileNameRoot,
+                  const char* strFileNameBeta, const char* strFileNameGamma, const char* strFileNameEnding);
+    virtual ~DiscreteEulerSigma();
+    virtual double fnGetArea(double dz);
+    virtual double fnGetnSLD(double dz);
+    virtual double fnGetLowerLimit();
+    virtual double fnGetUpperLimit();
+    virtual double fnGetVolume(double dz1, double dz2);
+    virtual void fnSetNormarea(double dnormarea);
+    virtual void fnSetSigma(double sigma) {dSigma=sigma;}
+    virtual void fnWritePar2File(FILE *fp, const char *cName, int dimension, double stepsize);
+    
+    
+    double dStartPosition, dProtExchange, dnSLDBulkSolvent;
+    double dBeta, dGamma;                                         //Euler angles
+    char* strFileNameRoot[30], strFileNameBeta[30], strFileNameGamma[30], strFileNameEnding[30];
+    double * area;
+    double * nSLProt;
+    double * nSLDeut;
+    double * zcoord;
+    double nf, dSigma;                                          //number of proteins per unit area
+
+    
+private:
+    int iNumberOfBeta, iNumberOfGamma, iNumberOfPoints, iNumberOfSigma;
+    double dBetaStart, dBetaEnd, dBetaInc, dGammaStart, dGammaEnd, dGammaInc;
+    double dZSpacing, normarea;
+    double dSigmaStart, dSigmaEnd, dSigmaInc;
+    
+    long int fn4Cto1C(int c1, int c2, int c3, int c4);
+    
+    
 };
 
 //---------------------------------------------------------------------------------------------------------

@@ -13,6 +13,7 @@
 #include "string.h"
 #include "math.h"
 #include "molgroups.h"
+#include "iostream"
 
 
 //------------------------------------------------------------------------------------------------------
@@ -147,6 +148,34 @@ double nSLDObj::fnTriCubicCatmullInterpolate(double p[4][4][4],double t[3]){
 
 };
 
+double nSLDObj::fnQuadCubicCatmullInterpolate(double p[4][4][4][4],double t[4]){
+    double dFirstStage[4][4][4];
+    double dSecondStage[4][4];
+    double dThirdStage[4];
+
+    int i,j,k;
+    
+    for (i=0; i<4; i++){
+        for (j=0; j<4; j++){
+            for (k=0; k<4; k++){
+                dFirstStage[i][j][k]=CatmullInterpolate(t[0],p[0][i][j][k],p[1][i][j][k],p[2][i][j][k],p[3][i][j][k]);
+            }
+        }
+    }
+    
+    for (i=0; i<4; i++){
+        for (j=0; j<4; j++){
+            dSecondStage[i][j]=CatmullInterpolate(t[1],dFirstStage[0][i][j],dFirstStage[1][i][j],dFirstStage[2][i][j],dFirstStage[3][i][j]);
+        }
+    }
+    
+    for (i=0; i<4; i++){
+        dThirdStage[i]=CatmullInterpolate(t[2],dSecondStage[0][i],dSecondStage[1][i],dSecondStage[2][i],dSecondStage[3][i]);
+    }
+    
+    return CatmullInterpolate(t[3],dThirdStage[0],dThirdStage[1],dThirdStage[2],dThirdStage[3]);
+    
+};
 
 //Philosophy for this first method: You simply add more and more volume and nSLD to the
 //volume and nSLD array. After all objects have filled up those arrays the maximal area is
@@ -4522,12 +4551,12 @@ double DiscreteEuler::fnGetArea(double dz) {
     iPosBinHigh=iPosBinLow+1;
     
     dBetaT=modf((dBeta-dBetaStart)/dBetaInc,&dtemp);
-    t[0]=dPosT;
+    t[0]=dBetaT;
     iBetaBinLow=int(dtemp);
     iBetaBinHigh=iBetaBinLow+1;
     
     dGammaT=modf((dGamma-dGammaStart)/dGammaInc,&dtemp);
-    t[1]=dPosT;
+    t[1]=dGammaT;
     iGammaBinLow=int(dtemp);
     iGammaBinHigh=iGammaBinLow+1;
     
@@ -4599,12 +4628,12 @@ double DiscreteEuler::fnGetnSLD(double dz) {
     iPosBinHigh=iPosBinLow+1;
     
     dBetaT=modf((dBeta-dBetaStart)/dBetaInc,&dtemp);
-    t[0]=dPosT;
+    t[0]=dBetaT;
     iBetaBinLow=int(dtemp);
     iBetaBinHigh=iBetaBinLow+1;
     
     dGammaT=modf((dGamma-dGammaStart)/dGammaInc,&dtemp);
-    t[1]=dPosT;
+    t[1]=dGammaT;
     iGammaBinLow=int(dtemp);
     iGammaBinHigh=iGammaBinLow+1;
     
@@ -4698,6 +4727,536 @@ void DiscreteEuler::fnWritePar2File(FILE *fp, const char *cName, int dimension, 
 {
     fprintf(fp, "DiscreteEuler %s StartPosition %e Beta %g Gamma %g nf %g \n",cName, dStartPosition,dBeta, dGamma, nf);
     nSLDObj::fnWriteData2File(fp, cName, dimension, stepsize);    
+}
+//---------------------------------------------------------------------------------------------------------------------
+
+DiscreteEulerSigma::DiscreteEulerSigma(double dstartposition, double dnormarea, double BetaStart, double BetaEnd, double BetaInc, double GammaStart, double GammaEnd, double GammaInc, double SigmaStart, double SigmaEnd, double SigmaInc, const char* strFileNameRoot, const char* strFileNameBeta, const char* strFileNameGamma, const char* strFileNameEnding)
+{
+    
+    double dz, dzold, darea, dnSLProt, dnSLDeut, dB, dG, dG2, temp[4], dd, dSigma;
+    int h,i,j,k,l,itemp, iZeroPadding;
+    FILE *fp;
+    char strFilename[200], buf[20], strTemp[4][40];
+    char strCmp[4][10];
+    
+    strcpy(strCmp[0],"z");
+    strcpy(strCmp[1],"protnSL");
+    strcpy(strCmp[2],"deutnSL");
+    strcpy(strCmp[3],"area");
+    
+    dStartPosition=dstartposition;
+    normarea=dnormarea;
+    dProtExchange=0;
+    dnSLDBulkSolvent=-0.566e-6;
+    
+    dBetaStart=BetaStart;
+    dBetaEnd=BetaEnd;
+    dBetaInc=BetaInc;
+    dGammaStart=GammaStart;
+    dGammaEnd=GammaEnd;
+    dGammaInc=GammaInc;
+    dSigmaStart=SigmaStart;
+    dSigmaEnd=SigmaEnd+SigmaInc;
+    dSigmaInc=SigmaInc;
+    
+    //start with first file for a first scan-through
+    strcpy(strFilename,"");
+    strcat(strFilename,strFileNameRoot);
+    strcat(strFilename,strFileNameBeta);
+    sprintf(buf,"%g",dBetaStart);
+    strcat(strFilename,buf);
+    strcat(strFilename,strFileNameGamma);
+    sprintf(buf,"%g",dGammaStart);
+    strcat(strFilename,buf);
+    strcat(strFilename,strFileNameEnding);
+    
+    //printf("File: %s \n",strFilename);
+    fp=fopen(strFilename,"r");
+    
+    if(fp==NULL) {
+        printf("Error: can't open file: %s.\n",strFilename);}
+    
+    //a first scan-through the first file to get point spacing dZSpacing, and iNumberOfPoints per file
+    iNumberOfPoints=0;
+    j=0; dzold=0;
+    fscanf(fp, "%s %s %s %s", strTemp[0], strTemp[1], strTemp[2], strTemp[3]);       //read out header
+    while(!feof(fp)) {
+        itemp=fscanf(fp, "%lf %lf %lf %lf", &temp[0], &temp[1], &temp[2], &temp[3]);
+        if (itemp==4) {
+            
+            for (l=0; l<4; l++) {
+                if ((strcmp (strTemp[l],strCmp[0]) == 0)) {
+                    dz=temp[l];
+                }
+                else if ((strcmp (strTemp[l],strCmp[1]) == 0)) {
+                    dnSLProt=temp[l];
+                }
+                else if ((strcmp (strTemp[l],strCmp[2]) == 0)) {
+                    dnSLDeut=temp[l];
+                }
+                else if ((strcmp (strTemp[l],strCmp[3]) == 0)) {
+                    darea=temp[l];
+                }
+                else {
+                    printf("Unknown Column header: %s. \n", strTemp[l]);
+                    abort();
+                }
+            }
+            //printf("%lf %lf %e %e \n", dz, darea, dnSLProt, dnSLDeut);
+            
+            if (j==1){
+                dZSpacing=dz-dzold;
+            }
+            iNumberOfPoints+=1;
+            dzold=dz;
+            j++;
+        }
+    }
+    fclose(fp);
+    
+    //include zero-padding at both ends covering 2 sigma of largest sigma to be used
+    iZeroPadding = int(4*(dSigmaEnd)/dZSpacing);
+    iNumberOfPoints += iZeroPadding;
+    
+    //calculate array size
+    iNumberOfBeta=int((dBetaEnd-dBetaStart)/dBetaInc);
+    iNumberOfGamma=int((dGammaEnd-dGammaStart)/dGammaInc);
+    iNumberOfSigma=int((dSigmaEnd-dSigmaStart)/dSigmaInc);
+    
+    //be aware that sigma does not start from zero, like the other variables,
+    //the empty function arguments should initialize the array to its default
+    //value which should be .0
+    j=fn4Cto1C(iNumberOfSigma,iNumberOfBeta,iNumberOfGamma,iNumberOfPoints);
+    zcoord  = new double[j]();
+    area    = new double[j]();
+    nSLProt = new double[j]();
+    nSLDeut = new double[j]();
+    
+    //scan over all files to load data
+    j=0;
+    for (dB=dBetaStart; dB<dBetaEnd; dB+=dBetaInc) {
+        k=0;
+        for (dG=dGammaStart; dG<dGammaEnd; dG+=dGammaInc) {
+            
+            //construct filename for beta and gamma
+            strcpy(strFilename,"");
+            strcat(strFilename,strFileNameRoot);
+            strcat(strFilename,strFileNameBeta);
+            sprintf(buf,"%g",dB);
+            strcat(strFilename,buf);
+            strcat(strFilename,strFileNameGamma);
+            sprintf(buf,"%g",dG);
+            strcat(strFilename,buf);
+            strcat(strFilename,strFileNameEnding);
+            
+            fp=fopen(strFilename,"r");
+            
+            //catch exception because sometimes there is only a (0,0) file
+            //and not a (0,gamma) file because this is in principal redundant
+            if(fp==NULL) {
+                if (dB==0) {dG2=0;}
+                //because (0,0)==(0,gamma)
+                strcpy(strFilename,"");
+                strcat(strFilename,strFileNameRoot);
+                strcat(strFilename,strFileNameBeta);
+                sprintf(buf,"%g",dB);
+                strcat(strFilename,buf);
+                strcat(strFilename,strFileNameGamma);
+                sprintf(buf,"%g",dG2);
+                strcat(strFilename,buf);
+                strcat(strFilename,strFileNameEnding);
+                
+                fp=fopen(strFilename,"r");
+                
+                if (fp==NULL) {
+                    printf("Error: can't open file: %s \n", strFilename);
+                    abort();
+                }
+                
+            }
+            
+            //Start after the initial zero-padding
+            i=iZeroPadding/2;
+            fscanf(fp, "%s %s %s %s", strTemp[0], strTemp[1], strTemp[2], strTemp[3]);       //read out header
+            while(!feof(fp)) {
+                itemp=fscanf(fp, "%lf %lf %lf %lf", &temp[0], &temp[1], &temp[2], &temp[3]);
+                if (itemp==4) {
+                    
+                    for (l=0; l<4; l++) {
+                        if ((strcmp (strTemp[l],strCmp[0]) == 0)) {
+                            dz=temp[l];
+                        }
+                        else if ((strcmp (strTemp[l],strCmp[1]) == 0)) {
+                            dnSLProt=temp[l];
+                        }
+                        else if ((strcmp (strTemp[l],strCmp[2]) == 0)) {
+                            dnSLDeut=temp[l];
+                        }
+                        else if ((strcmp (strTemp[l],strCmp[3]) == 0)) {
+                            darea=temp[l];
+                        }
+                        else {
+                            printf("Unknown Column header: %s. \n", strTemp[l]);
+                            abort();
+                        }
+                    }
+                    
+                    //fill all sigma columns with the loaded data, convolution with different sigmas comes later
+                    //z-column will be changed and consolidated during convolution because of zero-padding changing the array
+                    for (h=0; h<iNumberOfSigma; h++) {
+                        zcoord [fn4Cto1C(h,j,k,i)]=dz;
+                        area   [fn4Cto1C(h,j,k,i)]=darea;
+                        nSLProt[fn4Cto1C(h,j,k,i)]=dnSLProt;
+                        nSLDeut[fn4Cto1C(h,j,k,i)]=dnSLDeut;
+                    }
+                    
+                    //testing loop
+                    //if ((j==18) && (k==0) && (i==20)) {
+                        //printf("iNumberOfBeta %i iNumberOfGamma %i iNumberOfPoints %i \n",iNumberOfBeta, iNumberOfGamma, iNumberOfPoints);
+                        //printf("beta %i gamma %i z %i array position %i \n", j, k, i,fn3Cto1C(j,k,i));
+                        //printf("Filename %s darea %g \n",strFilename, darea);
+                    //}
+                    i++;
+                }
+            }
+            fclose(fp);
+            k++;
+        }
+        j++;
+    }
+    //printf("Done loading files.");
+        
+    //slow but straightforward Gaussian convolution of data
+    for (j=0; j<iNumberOfBeta; j++) {
+        for (k=0; k<iNumberOfGamma; k++) {
+            for (h=0; h<iNumberOfSigma; h++) {
+                dSigma = dSigmaStart + double(h)*dSigmaInc;
+                //convolue area
+                for (i=0; i<iNumberOfPoints; i++) {
+                    //use zcoord for storage of intermediate result as it can be rebuild
+                    zcoord[fn4Cto1C(h,j,k,i)]=0.0;
+                    //integrator goes over 3 sigma
+                    //if ((j==18) && (k==0) && h==1) {
+                    //    printf("area %g \n", area[fn4Cto1C(h,j,k,i)]);
+                    //    std::cin.ignore();
+                    //}
+
+                    for (l=(-1*3*int(dSigma/dZSpacing)); l<3*int(dSigma/dZSpacing)+1; l++){
+                        if ((i+l>=0) && (i+l<iNumberOfPoints)){
+                            if (dSigma!=0){
+                                dd = 1 / (dSigma*sqrt(2*3.14151)) * exp(-0.5*pow((double(l)*dZSpacing)/(dSigma),2)) * dZSpacing;
+                            }
+                            else if (l==0){
+                                dd = 1.0;
+                            }
+                            else{
+                                dd = 0.0;
+                            }
+                            zcoord[fn4Cto1C(h,j,k,i)] += area[fn4Cto1C(h,j,k,i+l)]*dd;
+                            //if ((j==18) && (k==0) && h==1) {
+                            //   printf("pos (%i,%i,%i) zcoord %g area %g dd %g dSigma %g exponent %g \n", i,l,i+l, zcoord[fn4Cto1C(h,j,k,i)], area[fn4Cto1C(h,j,k,i)], dd, dSigma, -0.5*pow((double(l)*dZSpacing)/(dSigma),2));
+                            //}
+                        }
+                    }
+                }
+                //copy result back to original array
+                for (i=0; i<iNumberOfPoints; i++) {
+                    area[fn4Cto1C(h,j,k,i)] = zcoord[fn4Cto1C(h,j,k,i)];
+                }
+                
+                //for testing
+                //if ((j==18) && (k==0)) {
+                //    printf("iNumberOfBeta %i iNumberOfGamma %i iNumberOfPoints %i iNumberOfSigma %i \n",iNumberOfBeta, iNumberOfGamma, iNumberOfPoints, iNumberOfSigma);
+                //   printf("sigma %i beta %i gamma %i z %i array position %li \n", h, j, k, i,fn4Cto1C(h,j,k,i));
+                //    printf("Filename %s darea %g dsigma %g \n",strFilename, darea, dSigma);
+                //    for (i=0; i<iNumberOfPoints; i++) {
+                //       printf("%g \n", area[fn4Cto1C(h,j,k,i)]);
+                //    }
+                //    printf("\n");
+                //}
+                
+                //convolue nSLProt
+                for (i=0; i<iNumberOfPoints; i++) {
+                    zcoord[fn4Cto1C(h,j,k,i)]=0.0;
+                    for (l=(-1*3*int(dSigma/dZSpacing)); l<3*int(dSigma/dZSpacing)+1; l++){
+                        if ((i+l>0) && (i+l<iNumberOfPoints)){
+                            if (dSigma!=0){
+                                dd = 1 / (dSigma*sqrt(2*3.14151)) * exp(-0.5*pow((double(l)*dZSpacing)/(dSigma),2)) * dZSpacing;
+                            }
+                            else if (l==0){
+                                dd = 1.0;
+                            }
+                            else{
+                                dd = 0.0;
+                            }
+                            zcoord[fn4Cto1C(h,j,k,i)] += nSLProt[fn4Cto1C(h,j,k,i+l)]*dd;
+                        }
+                    }
+                }
+                //copy result back to original array
+                for (i=0; i<iNumberOfPoints; i++) {
+                    nSLProt[fn4Cto1C(h,j,k,i)] = zcoord[fn4Cto1C(h,j,k,i)];
+                }
+                //convolue nSLDeut
+                for (i=0; i<iNumberOfPoints; i++) {
+                    zcoord[fn4Cto1C(h,j,k,i)]=0.0;
+                    for (l=(-1*3*int(dSigma/dZSpacing)); l<3*int(dSigma/dZSpacing)+1; l++){
+                        if ((i+l>0) && (i+l<iNumberOfPoints)){
+                            if (dSigma!=0){
+                                dd = 1 / (dSigma*sqrt(2*3.14151)) * exp(-0.5*pow((double(l)*dZSpacing)/(dSigma),2)) * dZSpacing;
+                            }
+                            else if (l==0){
+                                dd = 1.0;
+                            }
+                            else{
+                                dd = 0.0;
+                            }
+                            zcoord[fn4Cto1C(h,j,k,i)] += nSLDeut[fn4Cto1C(h,j,k,i+l)]*dd;
+                        }
+                    }
+                }
+                //copy result back to original array
+                for (i=0; i<iNumberOfPoints; i++) {
+                    nSLDeut[fn4Cto1C(h,j,k,i)] = zcoord[fn4Cto1C(h,j,k,i)];
+                }
+                //restore zcoord
+                //even if no convolution took place the z-coord needs to be rebuild due to zero-padding invalidating it
+                for (i=0; i<iNumberOfPoints; i++) {
+                    zcoord[fn4Cto1C(h,j,k,i)] = double(i) * dZSpacing;
+                }
+            }
+        }
+    }
+};
+
+DiscreteEulerSigma::~DiscreteEulerSigma(){
+    delete [] zcoord;
+    delete [] area;
+    delete [] nSLProt;
+    delete [] nSLDeut;
+};
+
+//Do coordinate conversion to go from 4D array to 1D array
+long int DiscreteEulerSigma::fn4Cto1C(int iSigma, int iBeta, int iGamma, int iZ) {
+    return iSigma*iNumberOfBeta*iNumberOfGamma*iNumberOfPoints+iBeta*iNumberOfGamma*iNumberOfPoints+iGamma*iNumberOfPoints+iZ;
+}
+
+//Return value is area at position z
+double DiscreteEulerSigma::fnGetArea(double dz) {
+    
+    int h,i,j,k, ii, jj, kk, hh;
+    int iPosBinLow, iPosBinHigh;
+    int iBetaBinLow, iBetaBinHigh;
+    int iGammaBinLow, iGammaBinHigh;
+    int iSigmaBinLow, iSigmaBinHigh;
+    double dPosT, dBetaT, dGammaT, dSigmaT;
+    double returnvalue, dtemp;
+    double t[4];                                // tvalues for beta, gamma, position
+    double p[4][4][4][4];                          // all function values for tricubic spline interpolations
+    // [beta][gamma][position][sigma]
+    // index values: 0->-1, 1->0, 2->1, 3->2
+    
+    
+    //TODO: check this thoroughly for negative dz
+    dz=dz-dStartPosition;                       //internal z for profile
+    dz=dz/dZSpacing;                            //floating point bin
+    dPosT=modf(dz,&dtemp);
+    t[2]=dPosT;
+    iPosBinLow=int(dtemp);
+    iPosBinHigh=iPosBinLow+1;
+    
+    dBetaT=modf((dBeta-dBetaStart)/dBetaInc,&dtemp);
+    t[0]=dBetaT;
+    iBetaBinLow=int(dtemp);
+    iBetaBinHigh=iBetaBinLow+1;
+    
+    dGammaT=modf((dGamma-dGammaStart)/dGammaInc,&dtemp);
+    t[1]=dGammaT;
+    iGammaBinLow=int(dtemp);
+    iGammaBinHigh=iGammaBinLow+1;
+    
+    dSigmaT=modf((dSigma-dSigmaStart)/dSigmaInc,&dtemp);
+    t[3]=dSigmaT;
+    iSigmaBinLow=int(dtemp);
+    iSigmaBinHigh=iSigmaBinLow+1;
+    
+    //printf("iNumberOfBeta %i iNumberOfGamma %i iNumberOfPoints %i \n",iNumberOfBeta, iNumberOfGamma, iNumberOfPoints);
+    //printf("z %g dStartPosition %g dZSpacing %g iPosBinLow %i iPosBinHigh %i iBetaBinLow %i iBetaBinHigh %i iGammaBinLow %i iGammaBinHigh %i \n",dz, dStartPosition, dZSpacing, iPosBinLow, iPosBinHigh, iBetaBinLow, iBetaBinHigh, iGammaBinLow, iGammaBinHigh);
+    
+    if ((iPosBinLow>=0) && (iPosBinHigh<=iNumberOfPoints) && (iBetaBinLow>=0) &&
+        (iBetaBinHigh<=iNumberOfBeta) && (iGammaBinLow>=0) && (iGammaBinHigh<=iNumberOfGamma) && (iSigmaBinLow>=0) && (iSigmaBinHigh<=iNumberOfSigma)) {
+        
+        for (i=0; i<4; i++){
+            ii=iBetaBinLow+i-1;
+            if (ii<0) {ii=0;}                                                   // beta does not wrap
+            if (ii>=iNumberOfBeta) {ii=iNumberOfBeta-1;}
+            for (j=0; j<4; j++){
+                jj=iGammaBinLow+j-1;
+                //printf("j %i jj %i iGammaBinLow %i", j, jj, iGammaBinLow);
+                if (jj<0) {jj=iNumberOfGamma-jj;}                               // gamma does wrap
+                if (jj>=iNumberOfGamma) {jj=jj-iNumberOfGamma;}
+                for (k=0; k<4; k++) {
+                    kk=iPosBinLow+k-1;
+                    if (kk<0) {kk=0;}                                           // position does not wrap
+                    if (kk>=iNumberOfPoints) {kk=iNumberOfPoints-1;}
+                    for (h=0; h<4; h++){
+                        hh=iSigmaBinLow+h-1;
+                        if (hh<0) {hh=0;}
+                        if (hh>=iNumberOfSigma) {hh=iNumberOfSigma-1;}
+                        
+                        p[i][j][k][h]=area[fn4Cto1C(hh,ii,jj,kk)];                         // get area for this point
+                        //printf("iNumberOfBeta %i iNumberOfGamma %i iNumberOfPoints %i \n",iNumberOfBeta, iNumberOfGamma, iNumberOfPoints);
+                        //printf("beta %i gamma %i z %i array position %i \n", ii, jj, kk,fn3Cto1C(ii,jj,kk));
+                        //printf("i %i j %i k %i p %g \n", i, j, k, p[i][j][k]);
+
+                    }
+                }
+            }
+        }
+        returnvalue=fnQuadCubicCatmullInterpolate(p,t);
+        //printf("Returnvalue %g \n", returnvalue);
+    }
+    else {
+        returnvalue=0;
+        //printf("ReturnvalueAbort %g \n", returnvalue);
+    }
+    
+    return returnvalue*nf;
+};
+
+//get nSLD from molecular subgroups
+double DiscreteEulerSigma::fnGetnSLD(double dz) {
+    
+    int h, i, j, k, hh, ii, jj, kk;
+    int iPosBinLow, iPosBinHigh;
+    int iBetaBinLow, iBetaBinHigh;
+    int iGammaBinLow, iGammaBinHigh;
+    int iSigmaBinLow, iSigmaBinHigh;
+    double dPosT, dBetaT, dGammaT, dSigmaT;
+    double returnvalue, dtemp;
+    double dtemp1, dtemp2, dtemp3,dtemp4;
+    double t[4];                                                    // tvalues for beta, gamma, position
+    double parea[4][4][4][4],pprot[4][4][4][4],pdeut[4][4][4][4];   // all function values for tricubic spline interpolations
+    // [beta][gamma][position][sigma]
+    // index values: 0->-1, 1->0, 2->1, 3->2
+    
+    dz=dz-dStartPosition;                       //internal z for profile
+    dz=dz/dZSpacing;                            //floating point bin
+    dPosT=modf(dz,&dtemp);
+    t[2]=dPosT;
+    iPosBinLow=int(dtemp);
+    iPosBinHigh=iPosBinLow+1;
+    
+    dBetaT=modf((dBeta-dBetaStart)/dBetaInc,&dtemp);
+    t[0]=dBetaT;
+    iBetaBinLow=int(dtemp);
+    iBetaBinHigh=iBetaBinLow+1;
+    
+    dGammaT=modf((dGamma-dGammaStart)/dGammaInc,&dtemp);
+    t[1]=dGammaT;
+    iGammaBinLow=int(dtemp);
+    iGammaBinHigh=iGammaBinLow+1;
+    
+    dSigmaT=modf((dSigma-dSigmaStart)/dSigmaInc,&dtemp);
+    t[3]=dSigmaT;
+    iSigmaBinLow=int(dtemp);
+    iSigmaBinHigh=iSigmaBinLow+1;
+    
+    if ((iPosBinLow>=0) && (iPosBinHigh<=iNumberOfPoints) && (iBetaBinLow>=0) &&
+        (iBetaBinHigh<=iNumberOfBeta) && (iGammaBinLow>=0) && (iGammaBinHigh<=iNumberOfGamma) && (iSigmaBinLow>=0) && (iSigmaBinHigh<=iNumberOfSigma)) {
+        
+        for (i=0; i<4; i++){
+            ii=iBetaBinLow+i-1;
+            if (ii<0) {ii=0;}                                                   // beta does not wrap
+            if (ii>=iNumberOfBeta) {ii=iNumberOfBeta-1;}
+            for (j=0; j<4; j++){
+                jj=iGammaBinLow+j-1;
+                if (jj<0) {jj=iNumberOfGamma-jj;}                               // gamma does wrap
+                if (jj>=iNumberOfGamma) {jj=jj-iNumberOfGamma;}
+                for (k=0; k<4; k++) {
+                    kk=iPosBinLow+k-1;
+                    if (kk<0) {kk=0;}                                           // position does not wrap
+                    if (kk>=iNumberOfPoints) {kk=iNumberOfPoints-1;}
+                    for (h=0; h<4; h++){
+                        hh=iSigmaBinLow+h-1;
+                        if (hh<0) {hh=0;}
+                        if (hh>=iNumberOfSigma) {hh=iNumberOfSigma-1;}
+
+                        parea[i][j][k][h]=area[fn4Cto1C(hh,ii,jj,kk)];
+                        pprot[i][j][k][h]=nSLProt[fn4Cto1C(hh,ii,jj,kk)];
+                        pdeut[i][j][k][h]=nSLDeut[fn4Cto1C(hh,ii,jj,kk)];
+                    
+                        //printf("iNumberOfBeta %i iNumberOfGamma %i iNumberOfPoints %i \n",iNumberOfBeta, iNumberOfGamma, iNumberOfPoints);
+                        //printf("beta %i gamma %i z %i array position %i \n", ii, jj, kk,fn3Cto1C(ii,jj,kk));
+                        //printf("i %i j %i k %i parea %g pprot %g pdeut %g \n", i, j, k, parea[i][j][k], pprot[i][j][k], pdeut[i][j][k]);
+                    }
+                }
+            }
+        }
+        dtemp1=fnQuadCubicCatmullInterpolate(pprot,t);
+        dtemp2=fnQuadCubicCatmullInterpolate(pdeut,t);
+        //printf("protexchange %e dnSLDBulkSolvent %e \n",dProtExchange, dnSLDBulkSolvent);
+        dtemp3=dProtExchange*(dnSLDBulkSolvent+0.566e-6)/(6.34e-6+0.566e-6);
+        dtemp4=(fnQuadCubicCatmullInterpolate(parea,t))*dZSpacing;
+        //printf("vol %g nsldprot %g nslddeut %g frac %e \n",dtemp4, dtemp1/dtemp4, dtemp2/dtemp4, dtemp3);
+        if (dtemp4!=0) {
+            returnvalue=(((1-dtemp3)*dtemp1+dtemp3*dtemp2)/dtemp4);
+        }
+        else {
+            returnvalue=0;
+        }
+    }
+    else {
+        returnvalue=0;
+    }
+    return returnvalue;
+};
+
+//Use limits of molecular subgroups
+double DiscreteEulerSigma::fnGetLowerLimit() {return (dStartPosition);}
+double DiscreteEulerSigma::fnGetUpperLimit() {return (dStartPosition+double(iNumberOfPoints)*dZSpacing);}
+double DiscreteEulerSigma::fnGetVolume(double dz1, double dz2) {
+    
+    double d, temp, integral;
+    
+    if (dz1>dz2){
+        temp=dz2;
+        dz2=dz1;
+        dz1=temp;
+    }
+    
+    //check for boundaries
+    if (dz1<dStartPosition) {dz1=dStartPosition;}
+    if (dz1>dz2) {
+        return 0;
+    }
+    if (dz2>dStartPosition + double(iNumberOfPoints)*dZSpacing) {dz2=dStartPosition + double(iNumberOfPoints)*dZSpacing;}
+    
+    d=dz1; integral=0;
+    while (1) {
+        if ((d+dZSpacing)<dz2) {
+            integral+=fnGetArea(d)*dZSpacing;
+            d+=dZSpacing;
+        }
+        else {
+            integral+=fnGetArea(d)*(dz2-d);
+            break;
+        }
+    }
+    
+    return integral;
+};
+
+void DiscreteEulerSigma::fnSetNormarea(double dnormarea)
+{
+    normarea=dnormarea;
+};
+
+
+void DiscreteEulerSigma::fnWritePar2File(FILE *fp, const char *cName, int dimension, double stepsize)
+{
+    fprintf(fp, "DiscreteEuler %s StartPosition %e Beta %g Gamma %g nf %g \n",cName, dStartPosition,dBeta, dGamma, nf);
+    nSLDObj::fnWriteData2File(fp, cName, dimension, stepsize);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

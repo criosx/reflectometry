@@ -7,7 +7,7 @@
  *
  */
 
-#define MATRIXSIZE 110
+#define MATRIXSIZE 140
 #define UNITSIZE 0.5
 #define PROBERADIUS 1.4 //1.4
 #define RECURSIVECALLMAX 20000
@@ -36,8 +36,8 @@
 
 char strPath[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/4G0N_RAS_RBD_complex/";
 char strFileNameRoot[20]="protein";
-char filename[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/KRAS-GppNHp/proteinFH.pdb";
-char FilenameWrite[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/KRAS-GppNHp/proteinFH.txt";
+char filename[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/KRas-RBD-Simanshu/rotated/bestfit_145tilt_40rot/protein_tilt145_orie40.pdb";
+char FilenameWrite[200]="/Users/frank/Documents/projects/proteins/KRas/StructureModeling/KRas-RBD-Simanshu/rotated/bestfit_145tilt_40rot/protein_tilt145_orie40.txt";
 
 // volume matrix starts from 0 positon to matrix -> ceil(pos/unit)
 // value description:
