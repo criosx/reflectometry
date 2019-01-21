@@ -6,6 +6,7 @@
 # issues: ISIS data files cannot contain headerline without specifier as they normally do, this will
 #        lead to MC not starting up
 
+from __future__ import print_function
 from math import fabs, pow, floor, ceil, sqrt, log10, log
 from numpy import cumsum, subtract, minimum, maximum, sum, average, array, mean, std
 from operator import itemgetter
@@ -21,6 +22,7 @@ from time import time, gmtime, sleep, ctime
 import zipfile
 import numpy
 import pandas
+import entropy
 
 
 class CDataInteractor():
@@ -151,7 +153,7 @@ class CDataInteractor():
                         else:
                             iFileType = 99  #unrecognized format
                     if not len(columns):
-                        print 'Found empty line in data file.'
+                        print('Found empty line in data file.')
                     if len(columns) == 3 and iFileType == 1:
                         try:
                             fvalue = float(columns[1])  #reflectivity
@@ -163,11 +165,11 @@ class CDataInteractor():
                             newline = newline[:-1] + '\n'  #add newline to end of line
                             newdata.append(newline)  #add line to new data file
                         except:
-                            print '-----------------------------------'
-                            print 'Data file %s corrupt.' % (reflfile)
-                            print 'File was identified being NIST type'
-                            print '-----------------------------------'
-                            raise StandardError, 'Corrupt Data file.'
+                            print('-----------------------------------')
+                            print('Data file %s corrupt.' % (reflfile))
+                            print('File was identified being NIST type')
+                            print('-----------------------------------')
+                            raise StandardError('Corrupt Data file.')
                     elif len(columns) == 4 and iFileType == 2:
                         try:
                             fvalue = float(columns[2])  # reflectivity
@@ -179,17 +181,17 @@ class CDataInteractor():
                             newline = newline[:-1] + '\n'  # add newline to end of line
                             newdata.append(newline)  # add line to new data file
                         except:
-                            print '-----------------------------------'
-                            print 'Data file %s corrupt.' % (reflfile)
-                            print 'File was identified being ISIS type.'
-                            print '-----------------------------------'
-                            raise StandardError, 'Corrupt Data file.'
+                            print('-----------------------------------')
+                            print('Data file %s corrupt.' % (reflfile))
+                            print('File was identified being ISIS type.')
+                            print('-----------------------------------')
+                            raise StandardError('Corrupt Data file.')
 
                     else:
-                        print '-----------------------------------------------------'
-                        print 'Filetype not recognized or contains errors: %s' % (reflfile)
-                        print '-----------------------------------------------------'
-                        raise StandardError, 'Corrupt Data file.'
+                        print('-----------------------------------------------------')
+                        print('Filetype not recognized or contains errors: %s' % (reflfile))
+                        print('-----------------------------------------------------')
+                        raise StandardError('Corrupt Data file.')
 
             file = open(path.split(reflfile)[-1] + '.mce', "w")  #write modified file into .mce file in
             file.writelines(newdata)  #working directory
@@ -214,17 +216,19 @@ class CDataInteractor():
         file.close()
         #saves all data out to a file
 
-    def fnSaveSingleColumnsFromStatDict(self, sFilename, data):
+    def fnSaveSingleColumnsFromStatDict(self, sFilename, data, skipentries=[]):
 
         File = open(sFilename, "w")
 
         for element in data:
-            File.write(element + " ")
+            if element not in skipentries:
+                File.write(element + " ")
         File.write("\n")
 
         for i in range(len(data[data.keys()[0]]['Values'])):
             for element in data:
-                File.write(str(data[element]['Values'][i]) + " ")
+                if element not in skipentries:
+                    File.write(str(data[element]['Values'][i]) + " ")
             File.write("\n")
 
         File.close()
@@ -249,21 +253,21 @@ class CGaReflInteractor(CDataInteractor):
 
         try:
             if path.isfile('isErr.dat') and path.isfile('sErr.dat'):
-                print '-------------------------------'
-                print 'Found isErr.dat and sErr.dat ?!'
-                print 'Load isErr.dat as default.'
-                print '-------------------------------'
+                print('-------------------------------')
+                print('Found isErr.dat and sErr.dat ?!')
+                print('Load isErr.dat as default.')
+                print('-------------------------------')
             elif path.isfile('isErr.dat'):  #check which type of MC output present
-                print 'Found isErr.dat\n'
+                print('Found isErr.dat\n')
             elif path.isfile('sErr.dat'):
-                print 'Found sErr.dat\n'
+                print('Found sErr.dat\n')
                 sFileName = 'sErr.dat'
 
             diStatRawData = {'Parameters': self.fnLoadSingleColumnsIntoStatDict(sFileName, sparse=dSparse)}
             return diStatRawData
 
         except IOError:
-            print 'Could not load ' + sFileName + '. \n'
+            print('Could not load ' + sFileName + '. \n')
             exit(1)
 
 
@@ -277,17 +281,15 @@ class CRefl1DInteractor(CDataInteractor):
         CDataInteractor.__init__(self)
         pass
 
-    #LoadStatResults returns a list of variable names, a logP array, and a numpy.ndarray
-    #[values,var_numbers].
+    def fnLoadMCMCResults(self, dirname='MCMC'):
 
-    def fnLoadStatData(self, dSparse=0):
         import bumps.dream.state
 
-        state = bumps.dream.state.load_state("MCMC/run")
+        state = bumps.dream.state.load_state(dirname + '/run')
         state.mark_outliers()  # ignore outlier chains
 
         #load Parameter
-        data = self.fnLoadSingleColumns("MCMC/run.par", header=False, headerline=['parname', 'bestfitvalue'])
+        data = self.fnLoadSingleColumns(dirname+"/run.par", header=False, headerline=['parname', 'bestfitvalue'])
         lParName = []
         vars = []
         i = 0
@@ -299,6 +301,16 @@ class CRefl1DInteractor(CDataInteractor):
         draw = state.draw(1, vars, None)
         points = draw.points
         logp = draw.logp
+
+        return points, lParName, logp
+
+
+    #LoadStatResults returns a list of variable names, a logP array, and a numpy.ndarray
+    #[values,var_numbers].
+
+    def fnLoadStatData(self, dSparse=0, rescale_small_numbers=True, skip_entries=[]):
+
+        points, lParName, logp = self.fnLoadMCMCResults()
 
         diStatRawData = {'Parameters': {}}
         diStatRawData['Parameters']['Chisq'] = {}  #TODO: Work on better chisq handling
@@ -312,11 +324,11 @@ class CRefl1DInteractor(CDataInteractor):
             if dSparse == 0 or (dSparse > 1 and j < dSparse) or (dSparse < 1 and random() < dSparse):
                 diStatRawData['Parameters']['Chisq']['Values'].append(logp[j])
                 for i, parname in enumerate(lParName):
-                    if 'rho_' in parname or 'background' in parname:  #TODO: this is a hack because Paul does not scale down after scaling up
+                    if ('rho_' in parname or 'background' in parname) and rescale_small_numbers:  #TODO: this is a hack because Paul does not scale down after scaling up
                         points[j, i] *= 1E-6
                     diStatRawData['Parameters'][parname]['Values'].append(points[j, i])
 
-        self.fnSaveSingleColumnsFromStatDict('sErr.dat', diStatRawData['Parameters'])
+        self.fnSaveSingleColumnsFromStatDict('sErr.dat', diStatRawData['Parameters'], skip_entries)
 
         return diStatRawData
 
@@ -395,8 +407,8 @@ class CReflectometry:
 
         iNumberOfMCIterations = self.diStatResults['NumberOfStatValues']  #how many iterations already done
         iMaxParameterNameLength = self.diStatResults['MaxParameterLength']
-        print 'Analysis of current MC simulation ...'
-        print 'Number of iterations: %(ni)d' % {'ni': iNumberOfMCIterations}
+        print('Analysis of current MC simulation ...')
+        print('Number of iterations: %(ni)d' % {'ni': iNumberOfMCIterations})
 
         fMaxConvergence = 0
         iHistoryLength = 5
@@ -501,17 +513,16 @@ class CReflectometry:
             sPrintString += 's  %(sg)s  [%(ll)10.4g,%(ul)10.4g]  [%(lp)10.4g(%(lpc).3f), %(m)10.4g(%(mc).3f), ' \
                             '%(hp)10.4g(%(hpc).3f)] (-%(ld)10.4g, +%(hd)10.4g)'
 
-            print  sPrintString % \
+            print(sPrintString %
                    {'el': element, 'll': flowerlimit, 'ul': fupperlimit, 'lp': fLowPerc,
                     'lpc': fLowPercConv, 'ld': (fMedian - fLowPerc), 'm': fMedian,
                     'mc': fMedianConv, 'hd': (fHighPerc - fMedian), 'hp': fHighPerc,
-                    'hpc': fHighPercConv, 'sg': sGraphOutput}
+                    'hpc': fHighPercConv, 'sg': sGraphOutput})
 
         self.diStatResults['Convergence'] = fMaxConvergence
-        print 'Maximum deviation from average over last %(iHL)d iterations: %(maxc).4f' % \
-              {'iHL': iHistoryLength, 'maxc': fMaxConvergence}
-        print 'Confidence level: %(fCL).4f' % {'fCL': fConfidence}
-
+        print('Maximum deviation from average over last %(iHL)d iterations: %(maxc).4f' %
+               {'iHL': iHistoryLength, 'maxc': fMaxConvergence})
+        print('Confidence level: %(fCL).4f' % {'fCL': fConfidence})
 
     #-------------------------------------------------------------------------------
 
@@ -597,32 +608,6 @@ class CReflectometry:
 
             return conv_arr
 
-        def parseentropy(iteration):
-            # retrieves mvn and kde entropy from run.mon
-            file1 = open('iteration_' + str(iteration) + '/run.mon', 'r')
-            lines = file1.readlines()
-            file1.close()
-
-            mvn = 1e99
-            kde = 1e99
-            for k in lines[-20:]:
-                if k.find('Entropy from MVN:') != -1:
-                    tmp = k.split('=')[-1].split('bits')[0]
-                    if tmp.find('(') != -1:
-                        tmp = tmp.split('(')[0]
-                    # print 'MVN Entropy = '+`float(tmp)`
-                    mvn = float(tmp)
-                elif k.find('Entropy:') != -1:
-                    tmp = k.split(':')[-1].split('bits')[0]
-                    if tmp.find('(') != -1:
-                        tmp_entropy = float(tmp[:tmp.find('(')] + tmp[tmp.find(')') + 1:])
-                    else:
-                        tmp_entropy = float(tmp)
-                    # print 'Entropy = '+`float(tmp)`
-                    kde = tmp_entropy
-
-            return mvn, kde
-
         def runmcmc(iteration, mcmcburn, mcmcsteps):
 
             # remove all MCMC directories
@@ -636,16 +621,45 @@ class CReflectometry:
             lCommand.append('--steps=' + str(mcmcsteps))
             call(lCommand)
 
+        def running_mean(current_mean, n, new_point):
+            # see Tony Finch, Incremental calculation of weighted mean and variance
+            return current_mean * (n - 1) / n + new_point * (1 / n)
+
+        def running_sqstd(current_sqstd, n, new_point, previous_mean, current_mean):
+            # see Tony Finch, Incremental calculation of weighted mean and variance
+            return (current_sqstd * (n - 1) + (new_point - previous_mean) * (new_point - current_mean))/n
 
         # all parameters from entropypar.dat
         allpar = pandas.read_csv('entropypar.dat', sep=' ', header=None,
                                      names=['type', 'par', 'value', 'l_fit', 'u_fit', 'l_sim', 'u_sim', 'step_sim'],
                                      skip_blank_lines=True, comment='#')
 
+        # identify dependent (a), independent (b), and non-parameters in simpar.dat for the calculation of p(a|b,y)
+        # later on
+        # it is assumed that all parameters in setup.cc are also specified in simpar.dat in exactly the same order
+        # this might have to be looked at in future
+        # keys: 'i' - independent, 'd'- dependent, 'n' or otherwise – none
+
+        dependent_parameters = []
+        independent_parameters = []
+        parlist = []
+        i = 0
+        for row in allpar.itertuples():
+            if row.type == 'i' or row.type == 'fi':
+                independent_parameters.append(i)
+                parlist.append(row.par)
+                i = i + 1
+            elif row.type == 'd' or row.type == 'fd':
+                dependent_parameters.append(i)
+                parlist.append(row.par)
+                i = i + 1
+
         # only those parameters that will be varied
         steppar = allpar.dropna(axis=0)
         # create data frame for simpar.dat needed by the reflectivity simulation routine
-        simpar = allpar.loc[:,['par', 'value']]
+        # non-parameters such as qrange and prefactor will be included in simpar, but eventually ignored
+        # when simulating the reflectivity, as they will find no counterpart in par.dat
+        simpar = allpar.loc[:, ['par', 'value']]
 
         steplist = []
         for row in steppar.itertuples():
@@ -654,59 +668,76 @@ class CReflectometry:
 
         if path.isfile('MVN_entropy.npy'):
             results_MVN = numpy.load('MVN_entropy.npy')
-            results_KDE = numpy.load('KDE_entropy.npy')
-            if path.isfile('MVN_n.npy'):
-                n_MVN = numpy.load('MVN_n.npy')
-                n_KDE = numpy.load('KDE_n.npy')
-                sqstd_MVN = numpy.load('MVN_sqstd.npy')
-                sqstd_KDE = numpy.load('KDE_sqstd.npy')
-            else:
-                n_MVN = numpy.ones(results_MVN.shape)
-                n_KDE = numpy.ones(results_KDE.shape)
-                sqstd_MVN = numpy.zeros(results_MVN.shape)
-                sqstd_KDE = numpy.zeros(results_KDE.shape)
+            results_KDN = numpy.load('KDN_entropy.npy')
+            results_MVN_marginal = numpy.load('MVN_entropy_marginal.npy')
+            results_KDN_marginal = numpy.load('KDN_entropy_marginal.npy')
+            n_MVN = numpy.load('MVN_n.npy')
+            n_KDN = numpy.load('KDN_n.npy')
+            n_MVN_marginal = numpy.load('MVN_n_marginal.npy')
+            n_KDN_marginal = numpy.load('KDN_n_marginal.npy')
+            sqstd_MVN = numpy.load('MVN_sqstd.npy')
+            sqstd_KDN = numpy.load('KDN_sqstd.npy')
+            sqstd_MVN_marginal = numpy.load('MVN_sqstd_marginal.npy')
+            sqstd_KDN_marginal = numpy.load('KDN_sqstd_marginal.npy')
+            par_median = numpy.load('par_median.npy')
+            par_std = numpy.load('par_std.npy')
         else:
             results_MVN = numpy.zeros(steplist)
-            results_KDE = numpy.zeros(steplist)
+            results_KDN = numpy.zeros(steplist)
+            results_MVN_marginal = numpy.zeros(steplist)
+            results_KDN_marginal = numpy.zeros(steplist)
             n_MVN = numpy.zeros(results_MVN.shape)
-            n_KDE = numpy.zeros(results_KDE.shape)
+            n_KDN = numpy.zeros(results_KDN.shape)
+            n_MVN_marginal = numpy.zeros(results_MVN_marginal.shape)
+            n_KDN_marginal = numpy.zeros(results_KDN_marginal.shape)
             sqstd_MVN = numpy.zeros(results_MVN.shape)
-            sqstd_KDE = numpy.zeros(results_KDE.shape)
+            sqstd_KDN = numpy.zeros(results_KDN.shape)
+            sqstd_MVN_marginal = numpy.zeros(results_MVN_marginal.shape)
+            sqstd_KDN_marginal = numpy.zeros(results_KDN_marginal.shape)
+            par_median = numpy.zeros((len(parlist), results_MVN.shape[0], results_MVN.shape[1]))
+            par_std = numpy.zeros((len(parlist), results_MVN.shape[0], results_MVN.shape[1]))
 
         repeats = True
+        #indicator whether every systematic variation has at least one result
+        #this should be achieved before re-analyzing any data point
+        no_zeros = False
         while repeats:
 
             repeats = False
-            it = numpy.nditer(results_KDE, flags=['multi_index'])
+            it = numpy.nditer(results_KDN, flags=['multi_index'])
             iteration = 0
+
             while not it.finished:
 
                 itindex = tuple(it.multi_index[i] for i in range(len(steplist)))
 
                 #run MCMC if it is first time or the value in results is inf
-                first_condition = numpy.isinf(results_KDE[itindex]) or fabs(results_KDE[itindex]) > 10000
-                second_condition = n_MVN[itindex] < miniter
-                if not first_condition or second_condition:
-                    # if a valid result exists, check whether the KDE value follows that of the MVN
+                invalid_result = numpy.isinf(results_KDN[itindex]) or fabs(results_KDN[itindex]) > 10000
+                insufficient_iterations = n_MVN[itindex] < miniter
+                outlier = False
+
+                if no_zeros and (not insufficient_iterations):
+                    # if a valid result exists, check whether the KDN value follows that of the MVN
                     # with respect to its nearest neighbors
 
                     # implemented own convolution because of ill-defined origin of scipy convolute
                     conv_MVN = convolute(results_MVN)
-                    conv_KDE = convolute(results_KDE)
+                    conv_KDN = convolute(results_KDN)
 
                     dMVN = conv_MVN[itindex] - results_MVN[itindex]
-                    dKDE = conv_KDE[itindex] - results_KDE[itindex]
+                    dKDN = conv_KDN[itindex] - results_KDN[itindex]
 
-                    if fabs(dMVN-dKDE) > convergence:
-                        second_condition = True
+                    if fabs(dMVN-dKDN) > convergence:
+                        outlier = True
 
-                if first_condition or second_condition:
+                if outlier or invalid_result or insufficient_iterations or (n_MVN[itindex]==0):
 
                     repeats = True
                     # set up fit limits and simulation parameters including parameters that are varied and
                     # fixed during the process
                     isim = 0
                     priorentropy = 0
+                    priorentropy_marginal = 0
                     qrange = 0
                     pre = 0
                     for row in allpar.itertuples():  # cycle through all parameters
@@ -718,9 +749,15 @@ class CReflectometry:
                             ufit = steppar.loc[steppar['par']==row.par, 'u_fit'].iloc[0]
 
                             simvalue = lsim + stepsim * it.multi_index[isim]
-                            lowersim = simvalue - (value - lfit)
-                            uppersim = simvalue + (ufit - value)
+                            if row.type == 'fd' or row.type == 'fi':
+                                # fixed fit boundaries, not floating, for such things as volfracs between 0 and 1
+                                lowersim = lfit
+                                uppersim = ufit
+                            else:
+                                lowersim = simvalue - (value - lfit)
+                                uppersim = simvalue + (ufit - value)
 
+                            # catch non-fit parameters in entropy.dat for q-range and counting time prefactor
                             if row.par == 'qrange':
                                 qrange = simvalue
                             elif row.par == 'prefactor':
@@ -732,14 +769,30 @@ class CReflectometry:
                                     priorentropy += log((uppersim-lowersim)*1e6)/log(2)
                                 else:
                                     priorentropy += log(uppersim-lowersim)/log(2)
-
+                                # calculate prior entropy for parameters to be marginalized
+                                if row.type == 'd':
+                                    if 'rho' in row.par:
+                                        priorentropy_marginal += log((uppersim - lowersim) * 1e6) / log(2)
+                                    else:
+                                        priorentropy_marginal += log(uppersim - lowersim) / log(2)
                             isim += 1
                         else:
-                            self.fnReplaceParameterLimitsInSetup(row.par, row.l_fit, row.u_fit)
-                            if 'rho' in row.par:
-                                priorentropy += log((row.u_fit-row.l_fit)*1e6)/log(2)
+                            if row.par == 'qrange':
+                                qrange = row.value
+                            elif row.par == 'prefactor':
+                                pre = row.value
                             else:
-                                priorentropy += log(row.u_fit-row.l_fit)/log(2)
+                                self.fnReplaceParameterLimitsInSetup(row.par, row.l_fit, row.u_fit)
+                                if 'rho' in row.par:
+                                    priorentropy += log((row.u_fit-row.l_fit)*1e6)/log(2)
+                                else:
+                                    priorentropy += log(row.u_fit-row.l_fit)/log(2)
+                                # calculate prior entropy for parameters to be marginalized (dependent parameters)
+                                if row.type == 'd':
+                                    if 'rho' in row.par:
+                                        priorentropy_marginal += log((row.u_fit - row.l_fit) * 1e6) / log(2)
+                                    else:
+                                        priorentropy_marginal += log(row.u_fit - row.l_fit) / log(2)
 
                     simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
                     self.fnSimulateReflectivity(mode=mode, pre=pre, qrange=qrange)
@@ -748,57 +801,83 @@ class CReflectometry:
 
                     # Calculate Entropy 10 times and average
                     mvn_entropy = []
-                    kde_entropy = []
-                    for j in range(10):
+                    kdn_entropy = []
+                    mvn_entropy_marginal = []
+                    kdn_entropy_marginal = []
 
+                    for j in range(5):  #was 10
                         # calculate entropy
-                        lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--batch', '--entropy']
-                        lCommand.append('--resume=iteration_' + str(iteration))
-                        lCommand.append('--store=iteration_' + str(iteration))
-                        lCommand.append('--burn=0')
-                        lCommand.append('--steps=' + str(mcmcsteps))
-                        call(lCommand)
-
-                        a, b = parseentropy(iteration)
+                        a, b, c, d, e, f = entropy.process_fit(dirname='iteration_' + str(iteration),
+                                                         dependent_parameters=dependent_parameters,
+                                                         independent_parameters=independent_parameters)
                         mvn_entropy.append(a)
-                        kde_entropy.append(b)
+                        kdn_entropy.append(b)
+                        mvn_entropy_marginal.append(c)
+                        kdn_entropy_marginal.append(d)
 
                     # remove outliers and average calculated entropies
                     avg_MVN, std_MVN = average(mvn_entropy)
-                    avg_KDE, std_KDE = average(kde_entropy)
+                    avg_KDN, std_KDN = average(kdn_entropy)
+                    avg_MVN_marginal, std_MVN_marginal = average(mvn_entropy_marginal)
+                    avg_KDN_marginal, std_KDN_marginal = average(kdn_entropy_marginal)
 
-                    if first_condition and std_KDE < convergence:
-                        # first or previous invalid result, simply write out new result
-                        results_MVN[itindex] = avg_MVN
-                        results_KDE[itindex] = avg_KDE
+                    # don't average over parameter stats
+                    points_median = e
+                    points_std = f
 
-                        n_KDE[itindex] = 1.0
-                        n_MVN[itindex] = 1.0
-                    elif std_KDE < convergence:
-                        n_KDE[itindex] += 1.0
+                    bValidResult = (std_KDN < convergence) and \
+                                   (priorentropy_marginal-avg_KDN_marginal > (-0.5) * len(dependent_parameters)) and \
+                                   (priorentropy - avg_KDN > (-0.5) * len(parlist))
+
+                    # no special treatment for first entry necessary, algorithm catches this
+                    if bValidResult:
+                        n_KDN[itindex] += 1.0
                         n_MVN[itindex] += 1.0
-                        n = n_KDE[itindex]
+                        n_KDN_marginal[itindex] += 1.0
+                        n_MVN_marginal[itindex] += 1.0
+                        n = n_KDN[itindex]
 
                         old_MVN = results_MVN[itindex]
-                        old_KDE = results_KDE[itindex]
-                        results_MVN[itindex] = results_MVN[itindex] * (n - 1) / n + avg_MVN * (1 / n)
-                        results_KDE[itindex] = results_KDE[itindex] * (n - 1) / n + avg_KDE * (1 / n)
+                        old_KDN = results_KDN[itindex]
+                        old_MVN_marginal = results_MVN_marginal[itindex]
+                        old_KDN_marginal = results_KDN_marginal[itindex]
 
-                        # see Tony Finch, Incremental calculation of weighted mean and variance
-                        sqstd_MVN[itindex] = (sqstd_MVN[itindex] *(n-1) +
-                                              (avg_MVN - old_MVN) * (avg_MVN - results_MVN[itindex]))/n
-                        sqstd_KDE[itindex] = (sqstd_KDE[itindex] *(n-1) +
-                                              (avg_KDE - old_KDE) * (avg_KDE - results_KDE[itindex]))/n
+                        results_MVN[itindex] = running_mean(results_MVN[itindex], n, avg_MVN)
+                        results_KDN[itindex] = running_mean(results_KDN[itindex], n, avg_KDN)
+                        results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
+                        results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
+                        par_median[:, itindex[0], itindex[1]] = running_mean(par_median[:, itindex[0], itindex[1]], n,
+                                                                             points_median)
+                        # for par std the average is calculated, not a sqstd of par_median
+                        par_std[:, itindex[0], itindex[1]] = running_mean(par_std[:, itindex[0], itindex[1]], n,
+                                                                          points_std)
+
+                        sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
+                        sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
+                        sqstd_MVN_marginal[itindex] = running_sqstd(sqstd_MVN_marginal[itindex], n, avg_MVN_marginal,
+                                                                    old_MVN_marginal, results_MVN_marginal[itindex])
+                        sqstd_KDN_marginal[itindex] = running_sqstd(sqstd_KDN_marginal[itindex], n, avg_KDN_marginal,
+                                                                    old_KDN_marginal, results_KDN_marginal[itindex])
 
                     #save results every iteration
-                    numpy.save('KDE_entropy', results_KDE, allow_pickle=False)
+                    numpy.save('KDN_entropy', results_KDN, allow_pickle=False)
                     numpy.save('MVN_entropy', results_MVN, allow_pickle=False)
-                    numpy.save('KDE_infocontent', priorentropy - results_KDE, allow_pickle=False)
+                    numpy.save('KDN_entropy_marginal', results_KDN_marginal, allow_pickle=False)
+                    numpy.save('MVN_entropy_marginal', results_MVN_marginal, allow_pickle=False)
+                    numpy.save('KDN_infocontent', priorentropy - results_KDN, allow_pickle=False)
                     numpy.save('MVN_infocontent', priorentropy - results_MVN, allow_pickle=False)
-                    numpy.save('KDE_sqstd', sqstd_KDE, allow_pickle=False)
+                    numpy.save('KDN_infocontent_marginal', priorentropy_marginal - results_KDN_marginal, allow_pickle=False)
+                    numpy.save('MVN_infocontent_marginal', priorentropy_marginal - results_MVN_marginal, allow_pickle=False)
+                    numpy.save('KDN_sqstd', sqstd_KDN, allow_pickle=False)
                     numpy.save('MVN_sqstd', sqstd_MVN, allow_pickle=False)
-                    numpy.save('KDE_n', n_KDE, allow_pickle=False)
+                    numpy.save('KDN_sqstd_marginal', sqstd_KDN_marginal, allow_pickle=False)
+                    numpy.save('MVN_sqstd_marginal', sqstd_MVN_marginal, allow_pickle=False)
+                    numpy.save('KDN_n', n_KDN, allow_pickle=False)
                     numpy.save('MVN_n', n_MVN, allow_pickle=False)
+                    numpy.save('KDN_n_marginal', n_KDN_marginal, allow_pickle=False)
+                    numpy.save('MVN_n_marginal', n_MVN_marginal, allow_pickle=False)
+                    numpy.save('par_median', par_median, allow_pickle=False)
+                    numpy.save('par_std', par_std, allow_pickle=False)
 
                     if deldir:
                         call(['rm', 'iteration_'+str(iteration)+'/run-point.mc'])
@@ -808,16 +887,33 @@ class CReflectometry:
                     # save to txt when not more than two-dimensional array
                     if len(steplist) <= 2:
                         numpy.savetxt('MVN_entropy.txt', results_MVN)
-                        numpy.savetxt('KDE_entropy.txt', results_KDE)
+                        numpy.savetxt('KDN_entropy.txt', results_KDN)
+                        numpy.savetxt('MVN_entropy_marginal.txt', results_MVN_marginal)
+                        numpy.savetxt('KDN_entropy_marginal.txt', results_KDN_marginal)
                         numpy.savetxt('MVN_infocontent.txt', priorentropy - results_MVN)
-                        numpy.savetxt('KDE_infocontent.txt', priorentropy - results_KDE)
+                        numpy.savetxt('KDN_infocontent.txt', priorentropy - results_KDN)
+                        numpy.savetxt('MVN_infocontent_marginal.txt', priorentropy_marginal - results_MVN_marginal)
+                        numpy.savetxt('KDN_infocontent_marginal.txt', priorentropy_marginal - results_KDN_marginal)
                         numpy.savetxt('MVN_sqstd.txt', sqstd_MVN)
-                        numpy.savetxt('KDE_sqstd.txt', sqstd_KDE)
+                        numpy.savetxt('KDN_sqstd.txt', sqstd_KDN)
+                        numpy.savetxt('MVN_sqstd_marginal.txt', sqstd_MVN_marginal)
+                        numpy.savetxt('KDN_sqstd_marginal.txt', sqstd_KDN_marginal)
                         numpy.savetxt('MVN_n.txt', n_MVN)
-                        numpy.savetxt('KDE_n.txt', n_KDE)
+                        numpy.savetxt('KDN_n.txt', n_KDN)
+                        numpy.savetxt('MVN_n_marginal.txt', n_MVN_marginal)
+                        numpy.savetxt('KDN_n_marginal.txt', n_KDN_marginal)
+                        i=0
+                        for parname in parlist:
+                            numpy.savetxt('Par_'+parname+'_median.txt', par_median[i])
+                            numpy.savetxt('Par_'+parname+'_std.txt', par_std[i])
+                            i += 1
 
                 iteration += 1
                 it.iternext()
+
+            if (not repeats) and (not no_zeros):
+                repeats = True
+                no_zeroes = True
 
     #-------------------------------------------------------------------------------
 
@@ -851,11 +947,11 @@ class CReflectometry:
 
         try:
             self.diStatResults = self.fnLoadObject('StatDataPython.dat')
-            print 'Loaded statistical data from StatDataPython.dat'
+            print('Loaded statistical data from StatDataPython.dat')
 
         except IOError:
-            print 'Failure to load StatDataPython.dat.'
-            print 'Recreate statistical data from sErr.dat.'
+            print('Failure to load StatDataPython.dat.')
+            print('Recreate statistical data from sErr.dat.')
             self.fnRecreateStatistical()
 
 
@@ -875,7 +971,7 @@ class CReflectometry:
                 self.diStatResults['Molgroups'][i]['frac2']['areaaxis']=pdfFrac2[striter].tolist()
 
         except IOError:
-            print 'Did not find any fractional envelopes ...'
+            print('Did not find any fractional envelopes ...')
 
         diResults = {}
         sMolgroups = self.diStatResults['Molgroups'][0].keys()
@@ -1126,7 +1222,7 @@ class CReflectometry:
                 histo[i] = float(histo[i])/sumlist
 
             maxindex = numpy.argmax(histo)
-            print maxindex, histo[maxindex]
+            print(maxindex, histo[maxindex])
             if histo[maxindex] == 1:
                 return [data[0], data[0], data[0], data[0], data[0]]
 
@@ -1190,12 +1286,12 @@ class CReflectometry:
             self.fnLoadParameters()  # Load Parameters for limits
 
             if sorted(self.diParameters.keys()) != sorted(self.diStatResults['Parameters'].keys()):
-                print '----------------------------------------------------'
-                print '----------------------------------------------------'
-                print 'setup.c and Stat File do not agree -----------------'
-                print 'backing up Stat File -------------------------------'
-                print '----------------------------------------------------'
-                print '----------------------------------------------------'
+                print ('----------------------------------------------------')
+                print ('----------------------------------------------------')
+                print ('setup.c and Stat File do not agree -----------------')
+                print ('backing up Stat File -------------------------------')
+                print ('----------------------------------------------------')
+                print ('----------------------------------------------------')
 
                 i = 2
                 while True:
@@ -1317,11 +1413,11 @@ class CReflectometry:
                 i += 1
 
         i = 0
-        print 'Processing data for output ...'
+        print ('Processing data for output ...')
         while i < iNumberOfModels:  #loop through all models
 
-            print 'Model %i: %i x %i' % (i, len(liContourArray[i][0]),
-                                         len(liContourArray[i]))
+            print ('Model %i: %i x %i' % (i, len(liContourArray[i][0]),
+                                          len(liContourArray[i])))
             sFileName = 'Cont_nSLD_Array' + str(i) + '.dat'  #write out array
             file = open(sFileName, "w")
             for line in liContourArray[i]:
@@ -1389,8 +1485,8 @@ class CReflectometry:
             i = 0
             for molgroup in self.diStatResults['Molgroups'][0]:  #loop through all models
 
-                print '%s %i: %i x %i' % (molgroup, i, len(liContourArray[i][0]),
-                                          len(liContourArray[i]))
+                print ('%s %i: %i x %i' % (molgroup, i, len(liContourArray[i][0]),
+                                           len(liContourArray[i])))
                 sFileName = 'Cont_' + molgroup + '_Array' + '.dat'  #write out array
                 file = open(sFileName, "w")
                 for line in liContourArray[i]:
@@ -1483,7 +1579,7 @@ class CReflectometry:
                 diStat[name+'_psigma'].append(stat[3])
 
         #initialize Statistical Dictionary
-        print 'Initializing ...'
+        print ('Initializing ...')
         lGroupList = ['substrate', 'tether', 'innerhg', 'innerhc', 'outerhc', 'outerhg', 'protein', 'sum', 'water']
         diStat={}
         for element in lGroupList:
@@ -1507,20 +1603,20 @@ class CReflectometry:
         #pull all relevant molgroups
         #headgroups are allready corrected for protein penetration (_corr) and will be copied over to the _corr
         #entries next
-        print 'Pulling all molgroups ...'
-        print '  substrate ...'
+        print('Pulling all molgroups ...')
+        print('  substrate ...')
         diIterations['substrate'], __, __ = self.fnPullMolgroupLoader(['substrate'])
-        print '  tether ...'
+        print('  tether ...')
         diIterations['tether'], __, __ = self.fnPullMolgroupLoader(['bME','tetherg', 'tether'])
-        print '  innerhg ...'
+        print('  innerhg ...')
         diIterations['innerhg'], __, __ = self.fnPullMolgroupLoader(['headgroup1','headgroup1_2','headgroup1_3'])
-        print '  innerhc ...'
+        print('  innerhc ...')
         diIterations['innerhc'], __, __ = self.fnPullMolgroupLoader(['lipid1', 'methyl1'])
-        print '  outerhc ...'
+        print('  outerhc ...')
         diIterations['outerhc'], __, __ = self.fnPullMolgroupLoader(['lipid2', 'methyl2'])
-        print '  outerhg ...'
+        print('  outerhg ...')
         diIterations['outerhg'], __, __= self.fnPullMolgroupLoader(['headgroup2','headgroup2_2','headgroup2_3'])
-        print '  protein ...'
+        print('  protein ...')
         diIterations['protein'], __, __ = self.fnPullMolgroupLoader(['protein'])
 
         #save z-axis
@@ -1532,7 +1628,7 @@ class CReflectometry:
             diIterations[element+'_corr']=diIterations[element].copy()
 
         #loop over all iterations and apply the corrections / calculations
-        print 'Applying corrections ...\n'
+        print('Applying corrections ...\n')
         for i in range(len(diIterations['substrate'].keys())-1):
 
             key = 'iter%i' % i
@@ -1605,7 +1701,7 @@ class CReflectometry:
                 diIterations[element+'_corr_cvo'][key]=diIterations[element+'_corr'][key]/areaperlipid
 
         #calculate the statisics
-        print 'Calculating statistics ...\n'
+        print('Calculating statistics ...\n')
         for element in lGroupList:
             if element != 'zaxis':
                 fnStat(diIterations[element], element, diStat)
@@ -1613,7 +1709,7 @@ class CReflectometry:
                 fnStat(diIterations[element+'_cvo'], element+'_cvo', diStat)
                 fnStat(diIterations[element+'_corr_cvo'], element+'_corr_cvo', diStat)
 
-        print 'Saving data to bilayerplotdata.dat ...\n'
+        print('Saving data to bilayerplotdata.dat ...\n')
         cInteractor = self.cGaReflInteractor
         cInteractor.fnSaveSingleColumns('bilayerplotdata.dat', diStat)
 
@@ -1838,8 +1934,8 @@ class CReflectometry:
 
         #check wether an existing MCMC exists
         if path.isfile(sPath + '/run.par'):
-            print 'Found ' + sPath + '/run.par \n'
-            print 'Using MCMC best-fit parameters ...'
+            print ('Found ' + sPath + '/run.par \n')
+            print ('Using MCMC best-fit parameters ...')
             File = open(sPath + '/run.par')
             data = File.readlines()
             File.close()
@@ -1873,9 +1969,9 @@ class CReflectometry:
                 data = File.readlines()
                 File.close()
             else:
-                print '--------------------------------------'
-                print 'No par.dat found - Initializing fit.'
-                print '--------------------------------------'
+                print ('--------------------------------------')
+                print ('No par.dat found - Initializing fit.')
+                print ('--------------------------------------')
                 self.fnMake()
                 pr = Popen(["nice", "./fit", "-S", "-n", "1"])  # initial genetic run
                 pr.wait()
@@ -1884,10 +1980,10 @@ class CReflectometry:
                     data = File.readlines()
                     File.close()
                 else:
-                    print '--------------------------------------'
-                    print 'Could not start up fit.'
-                    print '--------------------------------------'
-                    raise StandardError, 'Could not start up fit.'
+                    print ('--------------------------------------')
+                    print ('Could not start up fit.')
+                    print ('--------------------------------------')
+                    raise StandardError('Could not start up fit.')
 
             while data[-1][0] == '#':  # delete comments in last lines
                 data = data[:-1]
@@ -1911,16 +2007,16 @@ class CReflectometry:
                     del setupdata[j]  # delete the line where parameter found
                     break
             else:
-                print '--------------------------------------'
-                print 'Parameters do not match in setup and parameter file '  # no parameter in setup.c left!
-                print '--------------------------------------'
-                raise StandardError, 'Mismatch between setup file and par.dat.'
+                print ('--------------------------------------')
+                print ('Parameters do not match in setup and parameter file ')  # no parameter in setup.c left!
+                print ('--------------------------------------')
+                raise StandardError('Mismatch between setup file and par.dat.')
             if sParName in self.diParameters:
-                print '--------------------------------------'
-                print 'The parameter %s is defined twice in the garefl setup file.' % sParName
-                print 'This is not supported by rs.py.'
-                print '--------------------------------------'
-                raise StandardError, 'Doubled parameter in setup file.'
+                print ('--------------------------------------')
+                print ('The parameter %s is defined twice in the garefl setup file.' % sParName)
+                print ('This is not supported by rs.py.')
+                print ('--------------------------------------')
+                raise StandardError('Doubled parameter in setup file.')
             ipar = int(i)  # parameter number
             frelval = float(tParValues[i])  # relative par value is stored in file
             fvalue = (fupperlimit - flowerlimit) * frelval + flowerlimit  # calculate absolute par value
@@ -2115,12 +2211,12 @@ class CReflectometry:
             iModelEnd = iContrast + 1
 
         for iModel in range(iModelStart, iModelEnd):  #do the analysis separately for each model
-            print 'Analyzing model %i ...' % (iModel)
+            print ('Analyzing model %i ...' % (iModel))
 
             liStoredEnvelopes = []  #List of stored envelopes
             liStoredEnvelopeHeaders = []  #and their headers
 
-            fMin = 0;
+            fMin = 0
             fMax = 0  #initializing boundaries
             profilelist = []  #extracting all profiles related to the actual
             for iteration in self.diStatResults['nSLDProfiles']:  #model
@@ -2131,7 +2227,7 @@ class CReflectometry:
                     fMax = profilelist[-1][0][-1]
             fMax = floor((fMax - fMin) / fGrid) * fGrid + fMin  #make fMax compatible with fGrid and fMin
 
-            print 'Rebinning data...'
+            print ('Rebinning data...')
             for i in range(len(profilelist)):
                 profilelist[i] = fnInterpolateData(profilelist[i][0], profilelist[i][1], fMin, fMax, fGrid)
 
@@ -2140,7 +2236,7 @@ class CReflectometry:
             if not shortflag:
                 for iPercentile in range(iNumberOfProfiles):
 
-                    print 'Calculating %f percentile...' % (1 - float(iPercentile) / float(iNumberOfProfiles))
+                    print ('Calculating %f percentile...' % (1 - float(iPercentile) / float(iNumberOfProfiles)))
 
                     fArea, liEnvelope = fnCalculateEnvelope(profilelist)  #calculate envelope
                     fnStoreEnvelope(liStoredEnvelopes, liStoredEnvelopeHeaders,
@@ -2168,7 +2264,7 @@ class CReflectometry:
 
                 while iPercentile < iNumberOfProfiles:
 
-                    print 'Short: Calculating %f percentile...' % (1 - float(iPercentile) / float(iNumberOfProfiles))
+                    print ('Short: Calculating %f percentile...' % (1 - float(iPercentile) / float(iNumberOfProfiles)))
 
                     lScoring = []  #list of profile scores
                     for i in range(len(profilelist)):  #eliminate the profile with the largest reduction
@@ -2188,8 +2284,8 @@ class CReflectometry:
                     #number of profiles to eliminate
                     iElimination = iNumberOfProfiles - iPercentile - int(fConfT * iNumberOfProfiles)
 
-                    print "iPercentile %i iNumberOfProfiles %i iElimination %i fConf %e fSig %e fSigT %e fConfT %e" % (
-                    iPercentile, iNumberOfProfiles, iElimination, fConf, fSig, fSigT, fConfT)
+                    print ("iPercentile %i iNumberOfProfiles %i iElimination %i fConf %e fSig %e fSigT %e fConfT %e" % (
+                        iPercentile, iNumberOfProfiles, iElimination, fConf, fSig, fSigT, fConfT))
 
                     lScoring = sorted(lScoring[0:iElimination], key=itemgetter(0), reverse=True)
 
@@ -2511,11 +2607,11 @@ class CReflectometry:
                         sRangeIndicator += '|'
                     else:
                         sRangeIndicator += '.'
-            print '%2i %25s  %s %15g +/- %g in [%g,%g]' % (self.diParameters[parameter]['number'],
-                                                           parameter, sRangeIndicator, fValue,
-                                                           self.diParameters[parameter]['error'],
-                                                           fLowLim, self.diParameters[parameter]['upperlimit'])
-        print 'Chi squared: %g' % self.chisq
+            print ('%2i %25s  %s %15g +/- %g in [%g,%g]' % (self.diParameters[parameter]['number'],
+                                                            parameter, sRangeIndicator, fValue,
+                                                            self.diParameters[parameter]['error'],
+                                                            fLowLim, self.diParameters[parameter]['upperlimit']))
+        print ('Chi squared: %g' % self.chisq)
 
     #-------------------------------------------------------------------------------
 
@@ -2551,11 +2647,11 @@ class CReflectometry:
 
         try:
             self.diStatResults = self.fnLoadObject('StatDataPython.dat')
-            print 'Loaded statistical data from StatDataPython.dat'
+            print ('Loaded statistical data from StatDataPython.dat')
 
         except IOError:
-            print 'Failure to calculate values from StatDataPython.dat.'
-            print 'Recreate statistical data from sErr.dat.'
+            print ('Failure to calculate values from StatDataPython.dat.')
+            print ('Recreate statistical data from sErr.dat.')
             self.fnRecreateStatistical()
 
         diarea = {'zaxis': self.diStatResults['Molgroups'][0][self.diStatResults['Molgroups'][0].keys()[0]]['zaxis']}
@@ -2573,7 +2669,7 @@ class CReflectometry:
                     sumnslprofile = [ii + jj for ii, jj in zip(sumnslprofile, iteration[molgroup]['nslaxis'])] if \
                         sumnslprofile else iteration[molgroup]['nslaxis']
                 except:
-                    print'Molecular group %s does not exist.' % molgroup
+                    print ('Molecular group %s does not exist.' % molgroup)
                     exit()
 
             diarea['iter%i' % i] = sumareaprofile
@@ -2660,7 +2756,7 @@ class CReflectometry:
                     if element not in self.diStatResults['Parameters'].keys():
                         bConsistency = False
                 if bConsistency:  #check for consistency
-                    print 'Processing parameter set %i.\n' % (j)
+                    print ('Processing parameter set %i.\n' % (j))
                     p = []
                     for parameter in liParameters:
                         val = self.diStatResults['Parameters'][parameter]['Values'][iteration]
@@ -2670,7 +2766,7 @@ class CReflectometry:
                         p.append(val)
                     #print p
                     problem.setp(p)
-                    print problem.chisq()
+                    print (problem.chisq())
                     for M in problem.models:
                         z,rho,irho=M.fitness.smooth_profile()
 #                        plt.plot(z,rho)
@@ -2678,8 +2774,8 @@ class CReflectometry:
 #                        M.fitness.update()
                         self.diStatResults['nSLDProfiles'][-1].append((z,rho))
 #                        print self.diStatResults['Parameters']['rho_solv_0']['Values'][iteration], rho[0], M.chisq()
-                        print M.chisq()
-#                        print M.fitness._get_penalty()
+                        print (M.chisq())
+                    #                        print M.fitness._get_penalty()
 #                        print p, pi
 #                        models = [M for M in problem.models]
 
@@ -2696,8 +2792,7 @@ class CReflectometry:
                         self.fnLoadMolgroups()
                         self.diStatResults['Molgroups'].append(self.diMolgroups)  #append molgroup information to self.diStatResults
                 else:
-                    print 'Statistical error data and setup file do not match'
-                    raise ''
+                    raise StandardError('Statistical error data and setup file do not match')
             finally:
                 j += 1
 
@@ -3057,14 +3152,14 @@ def Auto(convergence=0.001):  # automatic fit
     call(['rm', '-f', 'covar.dat'], stdout=open(devnull, "w"))
     call(['nice', './fit', '-eS', '-n', '21'], stdout=open(devnull, "w"))
     call(['cp', 'pop_bak.dat', 'pop.dat'])  # copy newest population into pop.dat
-    print 'Genetic run, approximate roughness'
+    print ('Genetic run, approximate roughness')
     ReflPar.fnLoadAndPrintPar()
     fOldChiSq = ReflPar.fnGetChiSq()
 
     while 1:  # genetic runs until chisq<20 or not improving
         call(['nice', './fit', '-peS', '-n', '51'], stdout=open(devnull, "w"))
         call(['cp', 'pop_bak.dat', 'pop.dat'])
-        print 'Genetic run, approximate roughness'
+        print ('Genetic run, approximate roughness')
         ReflPar.fnLoadAndPrintPar()
         if (ReflPar.fnGetChiSq() < 10 or (fOldChiSq - ReflPar.fnGetChiSq()) < convergence):
             call(['cp', 'pop_bak.dat', 'pop.dat'])
@@ -3085,7 +3180,7 @@ def AutoFinish(convergence=0.001, sPath='./'):
 
     while 1:  #Amoeba, approximate roughness
         call(['nice', './fit', '-peaS'], stdout=open(devnull, "w"))  #until chisq<10 or no improvement
-        print 'Amoeba, approximate roughness'
+        print ('Amoeba, approximate roughness')
         ReflPar.fnLoadAndPrintPar()
         call(['cp', 'pop_bak.dat', 'pop.dat'])  # copy newest population into pop.dat
         if ReflPar.chisq < 5 or (fOldChiSq - ReflPar.fnGetChiSq() < convergence):
@@ -3115,15 +3210,15 @@ def AutoFinish2(convergence=0.001, sPath='./'):  # automatic fit, only local min
 
         if iGeneticIsUseless:  # skip genetic algorithm after it proved to be
             iGeneticSkipCount += 1  # useless and give it a chance every 5 iterations
-            print ' '
-            print 'Genetic algorithm skipped'
+            print (' ')
+            print ('Genetic algorithm skipped')
 
         call(['cp', 'pop.dat', 'pop_rspy.dat'])
         while (not iGeneticIsUseless) and iGeneticSkipCount < 6:
             iGeneticIsUseless = False
             iGeneticSkipCount = 0
             call(['nice', './fit', '-pe', '-n', '21'], stdout=open(devnull, "w"))
-            print 'Genetic run, correct roughness'
+            print ('Genetic run, correct roughness')
             ReflPar.fnLoadAndPrintPar()
             fTempChiSq2 = ReflPar.fnGetChiSq()
             if fTempChiSq - fTempChiSq2 < convergence:
@@ -3144,7 +3239,7 @@ def AutoFinish2(convergence=0.001, sPath='./'):  # automatic fit, only local min
         call(['cp', 'pop.dat', 'pop_rspy.dat'])
         while 1:
             call(['nice', './fit', '-pea'], stdout=open(devnull, "w"))
-            print 'Amoeba, correct roughness'
+            print ('Amoeba, correct roughness')
             ReflPar.fnLoadAndPrintPar()
             fTempChiSq2 = ReflPar.fnGetChiSq()
             if fTempChiSq - fTempChiSq2 < convergence:
@@ -3162,7 +3257,7 @@ def AutoFinish2(convergence=0.001, sPath='./'):  # automatic fit, only local min
         call(['cp', 'pop.dat', 'pop_rspy.dat'])
         while 1:
             call(['nice', './fit', '-pel'], stdout=open(devnull, "w"))
-            print 'Levenberg-Marquardt, correct roughness'
+            print ('Levenberg-Marquardt, correct roughness')
             ReflPar.fnLoadAndPrintPar()
             fTempChiSq2 = ReflPar.fnGetChiSq()
             if fTempChiSq - fTempChiSq2 < convergence:
@@ -3177,7 +3272,7 @@ def AutoFinish2(convergence=0.001, sPath='./'):  # automatic fit, only local min
             call(['cp', 'pop_rspy.dat', 'pop.dat'])
             fTempChiSq = fBlockChiSq
 
-        print 'old ChiSq: %g new ChiSq: %g' % (fOldChiSq, fTempChiSq)
+        print ('old ChiSq: %g new ChiSq: %g' % (fOldChiSq, fTempChiSq))
         if (fOldChiSq - fTempChiSq) < convergence:
             iFinishCounter += 1
         else:
@@ -3228,9 +3323,9 @@ def AvgProfile():
                 arr.append(rhoarr)
             #print len(tdata), len(rho), len(z), len(data)
 
-            median = [];
-            maxlikely = [];
-            lowperc = [];
+            median = []
+            maxlikely = []
+            lowperc = []
             highperc = []
             for i in range(len(z)):
                 cumulative = cumsum(arr[i])
@@ -3277,10 +3372,10 @@ def fCalculateMolgroups(fConfidence):
 #-------------------------------------------------------------------------------
 def fnDetermineFitSoftware():
     if path.isfile('run.py'):
-        print 'Refl1D setup identified.'
+        print ('Refl1D setup identified.')
         return 'refl1d'
     else:
-        print 'Garefl setup identified.'
+        print ('Garefl setup identified.')
         return 'garefl'
 
 
@@ -3329,7 +3424,7 @@ def DErr(convergence=0.001):  #function has not yet been thoroughly tested
                 fTestValue = fValue + float(iTestPoint) * fTestStep
                 if fTestValue < fLowerLimit or fTestValue > fUpperLimit:
                     continue
-                print sParameterName, fTestValue
+                print (sParameterName, fTestValue)
                 ReflPar.fnReplaceParameterLimitsInSetup(sParameterName,
                                                         #replace fit constraint in setup.c with a range, which
                                                         0.9999 * fTestValue, 1.0001 * fTestValue)  #is
@@ -3395,7 +3490,7 @@ def fMCMultiCore(iIterations=1000, fMCConvergence=0.01, iConvergence=0.01,
                 kill(int(item[0]), 15)
             except:
                 pass
-            print 'Delete directories ...'
+            print ('Delete directories ...')
             fCleanUpDirectory(item[1])
 
 
@@ -3442,25 +3537,26 @@ def fMCMultiCore(iIterations=1000, fMCConvergence=0.01, iConvergence=0.01,
                     fProjectedTime = 0
                 lTD = gmtime(fProjectedTime)
                 lTA = gmtime(fTimeAverage)
-                print ''
-                print ctime(fActualTime)
-                print '-%s Monte Carlo Error analysis using %i processes.' % (sMode, iNodes)
-                print 'Computing %i iterations per call' % iIterationsPerCall
-                print '%i of %i iterations done.' % (iDoneIterations, iIterations)
-                print ''
-                print 'Process list:'
+                print ('')
+                print (ctime(fActualTime))
+                print ('-%s Monte Carlo Error analysis using %i processes.' % (sMode, iNodes))
+                print ('Computing %i iterations per call' % iIterationsPerCall)
+                print ('%i of %i iterations done.' % (iDoneIterations, iIterations))
+                print ('')
+                print ('Process list:')
                 for i in range(len(lSubProcesses)):
                     lTS = gmtime(fActualTime - lSubProcesses[i][2])
-                    print '%i: PID %s in directory %s running for %id %ih %imin %is' % (i + 1, lSubProcesses[i][0],
-                                                                                        lSubProcesses[i][1], lTS[2] - 1,
-                                                                                        lTS[3], lTS[4], lTS[5])
+                    print ('%i: PID %s in directory %s running for %id %ih %imin %is' % (i + 1, lSubProcesses[i][0],
+                                                                                         lSubProcesses[i][1],
+                                                                                         lTS[2] - 1,
+                                                                                         lTS[3], lTS[4], lTS[5]))
                 if fTimeAverage > 0:
-                    print ''
-                    print 'Average time per iteration: %id %ih %imin %is' % (lTA[2] - 1, lTA[3], lTA[4], lTA[5])
-                    print 'Projected finish in %id %ih %imin %is' % (lTD[2] - 1, lTD[3], lTD[4], lTD[5])
-                    print 'on %s' % ( ctime(fActualTime + fProjectedTime))
-                print ''
-                print ''
+                    print ('')
+                    print ('Average time per iteration: %id %ih %imin %is' % (lTA[2] - 1, lTA[3], lTA[4], lTA[5]))
+                    print ('Projected finish in %id %ih %imin %is' % (lTD[2] - 1, lTD[3], lTD[4], lTD[5]))
+                    print ('on %s' % (ctime(fActualTime + fProjectedTime)))
+                print ('')
+                print ('')
 
             sleep(30)  #wait before checking for finished subprocesses
 
@@ -3485,11 +3581,11 @@ def fMCMultiCore(iIterations=1000, fMCConvergence=0.01, iConvergence=0.01,
                                     file.close()
                                     break
                                 except:
-                                    print '(i)sErr.dat is in use. Wait for 2s'
+                                    print ('(i)sErr.dat is in use. Wait for 2s')
                                     iFailureCounter += 1
                                     sleep(2)
                                     if iFailureCounter == 15:
-                                        print 'Cannot append to (i)sErr.dat -> Abort.'
+                                        print ('Cannot append to (i)sErr.dat -> Abort.')
                                         break
                         else:
                             call(['cp', sDirName + '/' + sMode + 'Err.dat', '.'])
@@ -3509,10 +3605,10 @@ def fMCMultiCore(iIterations=1000, fMCConvergence=0.01, iConvergence=0.01,
                             ReflPar.fnAnalyzeStatFile(
                                 fConfidence)  #see if convergence criterium for whole MC had been reached
                             if ReflPar.diStatResults['Convergence'] <= fMCConvergence:
-                                print 'MC has converged ..'
+                                print ('MC has converged ..')
                                 iExitFlag = 1
                         except:
-                            print 'Analysis failed...'
+                            print ('Analysis failed...')
 
                         break  #because we changed len(lSubProcesses)
 
@@ -3520,9 +3616,9 @@ def fMCMultiCore(iIterations=1000, fMCConvergence=0.01, iConvergence=0.01,
                         fCleanUpDirectory(sDirName)
                         if ( time() - lSubProcesses[i][2]) < 180:
                             iExitFlag = 1
-                            print '=========Multicore Error========='
-                            print 'Process termination within 3 min.'
-                            print '================================='
+                            print ('=========Multicore Error=========')
+                            print ('Process termination within 3 min.')
+                            print ('=================================')
                         del lSubProcesses[i]  #remove entry from list
                         iChange = 1
                         iFinishedProcessFound = 1
@@ -3538,8 +3634,8 @@ def fMCMultiCore(iIterations=1000, fMCConvergence=0.01, iConvergence=0.01,
 
 
     finally:
-        print 'Exiting MC'
-        print iExitFlag, iDoneIterations, iIterations
+        print ('Exiting MC')
+        print (iExitFlag, iDoneIterations, iIterations)
         fKillAllProcesses()
 
 
@@ -3563,7 +3659,7 @@ def fMCMC(iMaxIterations=1024000, liMolgroups=['protein'], fSparse=0):
         for i in range(1, 9):
             iBurn = iBurn * 2
             if path.isdir('MCMC_' + str(iBurn) + '_500'):
-                print 'Found ' + 'MCMC_' + str(iBurn) + '_500 \n'
+                print ('Found ' + 'MCMC_' + str(iBurn) + '_500 \n')
                 bMCMCexists = True
                 break
 
@@ -3573,7 +3669,7 @@ def fMCMC(iMaxIterations=1024000, liMolgroups=['protein'], fSparse=0):
         lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel']
         if bMCMCexists:
             if iBurn >= iMaxIterations:
-                print 'Maximum number of MCMC iterations reached\n'
+                print ('Maximum number of MCMC iterations reached\n')
                 break  #end
             lCommand.append('--resume=MCMC_' + str(iBurn) + '_500')
             lCommand.append('--store=MCMC_' + str(iBurn * 2) + '_500')
@@ -3596,7 +3692,7 @@ def fMCMC(iMaxIterations=1024000, liMolgroups=['protein'], fSparse=0):
         StatAnalysis(-1, 0.005)  #sErr.dat contains about 1000 iterations
         rename('MCMC', 'MCMC_' + str(iBurn * 2) + '_500')
 
-        if liMolgroups <> []:
+        if liMolgroups:
             if path.isfile('StatDataPython.dat'):
                 remove('StatDataPython.dat')
             ReflPar.fnPullMolgroup(liMolgroups, 0)
@@ -3635,7 +3731,7 @@ def fMCPBS(iIterations, iConvergence=0.01, fConfidence=0.9546, sMode='is', iNode
                 sleep(1)
                 iSleepCounter = iSleepCounter + 1
                 if iSleepCounter > 20:
-                    print 'Waited 20s for output files to be written ... giving up.'
+                    print ('Waited 20s for output files to be written ... giving up.')
                     break
 
     def fCreateMultiCoreJobID(lSubProcesses):
@@ -3654,7 +3750,7 @@ def fMCPBS(iIterations, iConvergence=0.01, fConfidence=0.9546, sMode='is', iNode
         for item in lSubProcesses:
             call(['qdel', item[0]])  #delete submitted job
             sleep(2)  #give system time
-            print 'Delete directories ...'
+            print ('Delete directories ...')
             fCleanUpDirectory(item[1])
 
 
@@ -3714,25 +3810,25 @@ def fMCPBS(iIterations, iConvergence=0.01, fConfidence=0.9546, sMode='is', iNode
                     fProjectedTime = 0
                 lTD = gmtime(fProjectedTime)
                 lTA = gmtime(fTimeAverage)
-                print ''
-                print ctime(fActualTime)
-                print '-%s Monte Carlo Error analysis using %i PBS jobs in queue.' % (sMode, iNumberOfPBSJobsInQueue)
-                print 'Computing %i iterations per call' % iIterationsPerCall
-                print '%i of %i iterations done.' % (iDoneIterations, iIterations)
-                print ''
-                print 'Process list:'
+                print ('')
+                print (ctime(fActualTime))
+                print ('-%s Monte Carlo Error analysis using %i PBS jobs in queue.' % (sMode, iNumberOfPBSJobsInQueue))
+                print ('Computing %i iterations per call' % iIterationsPerCall)
+                print ('%i of %i iterations done.' % (iDoneIterations, iIterations))
+                print ('')
+                print ('Process list:')
                 for i in range(len(lSubProcesses)):
                     lTS = gmtime(fActualTime - lSubProcesses[i][2])
-                    print '%i: PID %s rs.py ID %s running for %id %ih %imin %is' % (i + 1, lSubProcesses[i][0],
-                                                                                    lSubProcesses[i][1], lTS[2] - 1,
-                                                                                    lTS[3], lTS[4], lTS[5])
+                    print ('%i: PID %s rs.py ID %s running for %id %ih %imin %is' % (i + 1, lSubProcesses[i][0],
+                                                                                     lSubProcesses[i][1], lTS[2] - 1,
+                                                                                     lTS[3], lTS[4], lTS[5]))
                 if fTimeAverage > 0:
-                    print ''
-                    print 'Average time per iteration: %id %ih %imin %is' % (lTA[2] - 1, lTA[3], lTA[4], lTA[5])
-                    print 'Projected finish in %id %ih %imin %is' % (lTD[2] - 1, lTD[3], lTD[4], lTD[5])
-                    print 'on %s' % ( ctime(fActualTime + fProjectedTime))
-                print ''
-                print ''
+                    print ('')
+                    print ('Average time per iteration: %id %ih %imin %is' % (lTA[2] - 1, lTA[3], lTA[4], lTA[5]))
+                    print ('Projected finish in %id %ih %imin %is' % (lTD[2] - 1, lTD[3], lTD[4], lTD[5]))
+                    print ('on %s' % (ctime(fActualTime + fProjectedTime)))
+                print ('')
+                print ('')
 
             sleep(30)  #wait before checking for finished subprocesses
 
@@ -3764,9 +3860,9 @@ def fMCPBS(iIterations, iConvergence=0.01, fConfidence=0.9546, sMode='is', iNode
                         fCleanUpDirectory(sJobID, 1)
                         if ( time() - lSubProcesses[i][2]) < 180:
                             iExitFlag = 1
-                            print '============PBS Error============'
-                            print 'Process termination within 3 min.'
-                            print '================================='
+                            print ('============PBS Error============')
+                            print ('Process termination within 3 min.')
+                            print ('=================================')
                         del lSubProcesses[i]  #remove entry from list
                         iChange = 1
                         iFinishedProcessFound = 1
@@ -3809,7 +3905,7 @@ def Monitor():  #monitors all profile.dat files
             self.frame.pack()
             self.modtime = path.getmtime('profile0.dat')  #get initial modification time
             #for profile0.dat
-            print 'Monitoring ... Stop with Ctrl-C'
+            print ('Monitoring ... Stop with Ctrl-C')
 
             self.fnMainBody(1)  #draw initial nSLD profile
 
@@ -3832,9 +3928,9 @@ def Monitor():  #monitors all profile.dat files
                         file.close()
                         data = data[1:]  #delete header
 
-                        k = 0;
+                        k = 0
                         l = 0
-                        zlist = [];
+                        zlist = []
                         rholist = []
                         for line in data:  #extract nSLD profile data line by line
                             splitline = line.split()
@@ -3903,7 +3999,7 @@ def SErr(iiterations, convergence=0.01, sStatMode='is', fConfidence=0.9546):
             file.write("Chisq " + " ".join(ReflPar.fnGetSortedParNames()) + '\n')
             file.close()
         for i in range(iiterations):
-            print 'Iteration #', i
+            print ('Iteration #', i)
             ReflPar.cGaReflInteractor.fnMCModifyFile(filelist)
             if sStatMode == "is":
                 Auto(convergence)  #automatic fitting, independent start
@@ -3958,105 +4054,105 @@ def StatTable(sTableName, fConfidence=0.9546):  # Produces Latex formatted table
 
 if __name__ == '__main__':
     if len(argv) == 1:
-        print ''
-        print 'Reflscript usage:'
-        print '-----------------------------------------------------------------'
-        print '-a [c]               Auto fit'
-        print '-aprof               Creates average profiles from ContArray'
-        print '                     ContDimZ and ContDimRho files'
-        print '-bilayerplot         Creates data for bilayer plots in '
-        print '                     bilayerplotdata.dat'
-        print '-conf cf             Confidence for statistical calculatioins'
-        print '                     0<=cf<=1, if cf < 0 than cf is interpreted'
-        print '                     in units of (negative) sigma'
-        print '-cont [z rho]        Create a contour/image plot from sErr.dat'
-        print '                     or isErr.dat'
-        print '-d [c]               Displacement error analysis'
-        print '-env [zGrid sigma]   Calculates nSLD envelopes from stat file'
-        print '-f [c]               Finish fit'
-        print '-fit filename        Save fit, rho, res in a png file'
-        print '                     called filename_fit.png'
-        print '-ipc [ipc]           iterations per call/job for -pbs and -m'
-        print '-is n [c]            Independent statistical error analysis'
-        print '-l [c]               Auto fit finish with correct roughness'
-        print '-m [m]               use m parallel processes on one node'
-        print '-mol filename        Save molgroups plot in a png file'
-        print '                     called filename_mol.png'
-        print '-mon                 Monitors a running fit'
-        print '-pbs [j workq]       Use pbs to submit j jobs to workq queue'
-        print '-pull molgroups      Creates stat profile for a number of molgroups'
-        print '-r                   Print results'
-        print '-s n [c]             Statistical error analysis with n iterations'
-        print '-stat                Analysis of previously calculated stat. data'
-        print '                     For n<1 a maximum of 1000 iterations is'
-        print '                     carried out until the MC converges and all'
-        print '                     parameters do not show a relative change of'
-        print '                     more than n compared to the fit interval'
-        print '-sparse n            Uses only a subset of n iterations from stat'
-        print '                     file. If n<1 than a random chance of f is '
-        print '                     applied to each line that it is used.'
-        print '-t                   Truncate par.dat'
-        print ''
-        print 'Displacement Error Analysis:'
-        print 'For each parameter that should be analyzed, the script expects'
-        print 'a tag with the syntax"!rstag min max s !" in the line where the'
-        print 'parameter is initialized with the pars_add command. The tag'
-        print 'should be embedded in a comment section starting with //. The '
-        print 'tag parameters min, max, and s give the relative(!) range and'
-        print 'stepsize of the displacement of the parameters. For each '
-        print 'parameter, an output file is created that contains the fixed '
-        print 'parameter value and the achieved chi squared'
-        print ''
-        print 'Statistical Error Analysis'
-        print 'The script creates n data sets by varying the measured'
-        print 'reflectivity using random-generated normal deviates'
-        print 'applied to the uncertainty of the measured data points'
-        print 'An automated fit determines the fit parameters and they'
-        print 'are stored in a file called "sErr.dat". A histogram analysis'
-        print 'should be carried out afterwards with a software like Igor.'
-        print ''
-        print 'Independent Statistical Error Analysis'
-        print 'This option is equal to "-s" but does not load the stored'
-        print 'population of a previous fit at start-up. The fit parameters'
-        print 'are stored in isErr.dat.'
-        print ''
-        print 'Multiprocessor support'
-        print 'Designed for workstations with multicore architecture. The'
-        print 'attribute m defines the number of parallel processes used.'
-        print ''
-        print 'PBS batch support'
-        print 'The j attribute defines the number of jobs submitted once'
-        print 'at a time. The workq argument is the queue name. PBS and the'
-        print 'Multi-process support -m can be combined. In this case the'
-        print '-ipc option defines the number of MC iterations per process'
-        print 'The number of iterations per PBS job is then ips * m with'
-        print 'm being the number of parallel processes.'
-        print ''
-        print 'Contour/Image Plots'
-        print 'Using SErr.dat or iSErr.dat an array with 3D-data usable'
-        print 'for contour or image plots is created. The output file is'
-        print 'ContArr#model.dat. 3D data is generated for all models'
-        print 'specified in setup.c. For each array two files with axis'
-        print 'label information are written intended to be used with Igor.'
-        print 'The attributes z and rho determine the bin size of the'
-        print 'grid used for mapping of the nSLD profiles.'
-        print ''
-        print 'All fit and error analysis calls may have an additional'
-        print 'attribute c that sets the convergence condition of the fit'
-        print 'The fit is viewed at as converged if the change of chi2 after'
-        print 'a complete alternation over genetic algorigthm, amoeba and'
-        print 'Levenberg Marquardt is less than c. A c of 0.001 is the'
-        print 'default'
-        print 'Example: ./rs.py -iS 1000 0.01 decreases the convergence'
-        print 'condition by one order of magnitude'
-        print 'Envelopes'
-        print 'The option -short startes a less precise but significantly'
-        print 'faster algorithm. The precision of the envelopes is'
-        print '+/- 0.1 sigma. -env takes two arguments, the bin size'
-        print 'for z and a sigma parameter. Presets are 0.5 in both cases'
-        print 'The sigma parameter defines the spacing in units of '
-        print 'sigma for which envelopes are calculated. A sigma parameter'
-        print 'of 0 saves all calculates envelopes'
+        print ('')
+        print ('Reflscript usage:')
+        print ('-----------------------------------------------------------------')
+        print ('-a [c]               Auto fit')
+        print ('-aprof               Creates average profiles from ContArray')
+        print ('                     ContDimZ and ContDimRho files')
+        print ('-bilayerplot         Creates data for bilayer plots in ')
+        print ('                     bilayerplotdata.dat')
+        print ('-conf cf             Confidence for statistical calculatioins')
+        print ('                     0<=cf<=1, if cf < 0 than cf is interpreted')
+        print ('                     in units of (negative) sigma')
+        print ('-cont [z rho]        Create a contour/image plot from sErr.dat')
+        print ('                     or isErr.dat')
+        print ('-d [c]               Displacement error analysis')
+        print ('-env [zGrid sigma]   Calculates nSLD envelopes from stat file')
+        print ('-f [c]               Finish fit')
+        print ('-fit filename        Save fit, rho, res in a png file')
+        print ('                     called filename_fit.png')
+        print ('-ipc [ipc]           iterations per call/job for -pbs and -m')
+        print ('-is n [c]            Independent statistical error analysis')
+        print ('-l [c]               Auto fit finish with correct roughness')
+        print ('-m [m]               use m parallel processes on one node')
+        print ('-mol filename        Save molgroups plot in a png file')
+        print ('                     called filename_mol.png')
+        print ('-mon                 Monitors a running fit')
+        print ('-pbs [j workq]       Use pbs to submit j jobs to workq queue')
+        print ('-pull molgroups      Creates stat profile for a number of molgroups')
+        print ('-r                   Print results')
+        print ('-s n [c]             Statistical error analysis with n iterations')
+        print ('-stat                Analysis of previously calculated stat. data')
+        print ('                     For n<1 a maximum of 1000 iterations is')
+        print ('                     carried out until the MC converges and all')
+        print ('                     parameters do not show a relative change of')
+        print ('                     more than n compared to the fit interval')
+        print ('-sparse n            Uses only a subset of n iterations from stat')
+        print ('                     file. If n<1 than a random chance of f is ')
+        print ('                     applied to each line that it is used.')
+        print ('-t                   Truncate par.dat')
+        print ('')
+        print ('Displacement Error Analysis:')
+        print ('For each parameter that should be analyzed, the script expects')
+        print ('a tag with the syntax"!rstag min max s !" in the line where the')
+        print ('parameter is initialized with the pars_add command. The tag')
+        print ('should be embedded in a comment section starting with //. The ')
+        print ('tag parameters min, max, and s give the relative(!) range and')
+        print ('stepsize of the displacement of the parameters. For each ')
+        print ('parameter, an output file is created that contains the fixed ')
+        print ('parameter value and the achieved chi squared')
+        print ('')
+        print ('Statistical Error Analysis')
+        print ('The script creates n data sets by varying the measured')
+        print ('reflectivity using random-generated normal deviates')
+        print ('applied to the uncertainty of the measured data points')
+        print ('An automated fit determines the fit parameters and they')
+        print ('are stored in a file called "sErr.dat". A histogram analysis')
+        print ('should be carried out afterwards with a software like Igor.')
+        print ('')
+        print ('Independent Statistical Error Analysis')
+        print ('This option is equal to "-s" but does not load the stored')
+        print ('population of a previous fit at start-up. The fit parameters')
+        print ('are stored in isErr.dat.')
+        print ('')
+        print ('Multiprocessor support')
+        print ('Designed for workstations with multicore architecture. The')
+        print ('attribute m defines the number of parallel processes used.')
+        print ('')
+        print ('PBS batch support')
+        print ('The j attribute defines the number of jobs submitted once')
+        print ('at a time. The workq argument is the queue name. PBS and the')
+        print ('Multi-process support -m can be combined. In this case the')
+        print ('-ipc option defines the number of MC iterations per process')
+        print ('The number of iterations per PBS job is then ips * m with')
+        print ('m being the number of parallel processes.')
+        print ('')
+        print ('Contour/Image Plots')
+        print ('Using SErr.dat or iSErr.dat an array with 3D-data usable')
+        print ('for contour or image plots is created. The output file is')
+        print ('ContArr#model.dat. 3D data is generated for all models')
+        print ('specified in setup.c. For each array two files with axis')
+        print ('label information are written intended to be used with Igor.')
+        print ('The attributes z and rho determine the bin size of the')
+        print ('grid used for mapping of the nSLD profiles.')
+        print ('')
+        print ('All fit and error analysis calls may have an additional')
+        print ('attribute c that sets the convergence condition of the fit')
+        print ('The fit is viewed at as converged if the change of chi2 after')
+        print ('a complete alternation over genetic algorigthm, amoeba and')
+        print ('Levenberg Marquardt is less than c. A c of 0.001 is the')
+        print ('default')
+        print ('Example: ./rs.py -iS 1000 0.01 decreases the convergence')
+        print ('condition by one order of magnitude')
+        print ('Envelopes')
+        print ('The option -short startes a less precise but significantly')
+        print ('faster algorithm. The precision of the envelopes is')
+        print ('+/- 0.1 sigma. -env takes two arguments, the bin size')
+        print ('for z and a sigma parameter. Presets are 0.5 in both cases')
+        print ('The sigma parameter defines the spacing in units of ')
+        print ('sigma for which envelopes are calculated. A sigma parameter')
+        print ('of 0 saves all calculates envelopes')
     else:
 
         bShortFlag = False

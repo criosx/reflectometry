@@ -5255,7 +5255,7 @@ void DiscreteEulerSigma::fnSetNormarea(double dnormarea)
 
 void DiscreteEulerSigma::fnWritePar2File(FILE *fp, const char *cName, int dimension, double stepsize)
 {
-    fprintf(fp, "DiscreteEuler %s StartPosition %e Beta %g Gamma %g nf %g \n",cName, dStartPosition,dBeta, dGamma, nf);
+    fprintf(fp, "DiscreteEuler %s StartPosition %e Beta %g Gamma %g Sigma %g nf %g \n",cName, dStartPosition,dBeta, dGamma, dSigma, nf);
     nSLDObj::fnWriteData2File(fp, cName, dimension, stepsize);
 }
 
@@ -6216,6 +6216,29 @@ ssBLM_POPC_PIP::ssBLM_POPC_PIP()
     fnAdjustParameters();
     
 }
+
+ssBLM_DPPC_d62DPPC::ssBLM_DPPC_d62DPPC()
+{
+    volacyllipid=789;
+    nslacyllipid=-3.2477E-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    
+    headgroup1_2->vol=335;                //PS volume and length are estimates
+    headgroup2_2->vol=335;
+    headgroup1_2->nSL=6.0063E-4;
+    headgroup2_2->nSL=6.0063E-4;
+    headgroup1_2->l=9.56;
+    headgroup2_2->l=9.56;
+    
+    volacyllipid_2=789;
+    nslacyllipid_2=6.1304E-3;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=5.3322e-4;
+    
+    fnAdjustParameters();
+}
+
 
 ssBLM_POPC_POPS_PIP_chol::ssBLM_POPC_POPS_PIP_chol()
 {

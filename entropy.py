@@ -1,4 +1,8 @@
 r"""
+
+Paul Kienzle's entropy module, modified to allow for marginalization
+(F.H. Sep 2018)
+
 Estimate entropy after a fit.
 
 The :func:`entropy` method computes the entropy directly from a set of
@@ -55,6 +59,8 @@ import rs
 from numpy import mean, std, exp, log, max, sqrt, log2, pi, e
 from numpy.random import permutation
 from scipy.stats import norm, chi2
+##from fastkde import fastKDE
+import statsmodels.nonparametric.kernel_density as stm
 LN2 = log(2)
 
 
@@ -111,7 +117,7 @@ def sklearn_density(sample_points, evaluation_points):
 
 
 # scipy kde fails with singular matrix, so we will use scikit.learn
-#density = scipy_stats_density
+# density = scipy_stats_density
 density = sklearn_density
 
 
@@ -204,6 +210,41 @@ def entropy(points, logp, N_entropy=10000, N_norm=2500):
     # return entropy and uncertainty in bits
     return s_est/LN2, s_err/LN2
 
+class MVNEntropy_marginal(object):
+    """
+    Multivariate normal entropy approximation.
+
+    Uses Mardia's multivariate skewness and kurtosis test to estimate normality.
+
+    *x* is a set of points
+
+    *alpha* is the cutoff for the normality test.
+
+    *max_points* is the maximum number of points to use when computing the
+    entropy.  Since the normality test is $O(n^2)$ in memory and time,
+    where $n$ is the number of points, *max_points* defaults to 1000.
+
+    The returned object has the following attributes:
+
+        *p_kurtosis* is the p-value for the kurtosis normality test
+
+        *p_skewness* is the p-value for the skewness normality test
+
+        *reject_normal* is True if either the the kurtosis or the skew test
+        fails
+
+        *entropy* is the estimated entropy of the best normal approximation
+        to the distribution
+
+    """
+    def __init__(self, x, independent_pars, alpha=0.05, max_points=1000):
+        # compute Mardia test coefficient
+        n, p = x.shape   # num points, num dimensions
+        mu = np.mean(x, axis=0)
+        C = np.cov(x.T, bias=1) if p > 1 else np.array([[np.var(x.T, ddof=1)]])
+        C = np.delete(C, independent_pars, 0)
+        C = np.delete(C, independent_pars, 1)
+        self.entropy = cov_entropy(C)
 
 class MVNEntropy(object):
     """
@@ -232,7 +273,7 @@ class MVNEntropy(object):
         to the distribution
 
     """
-    def __init__(self, x, alpha=0.05, max_points=1000):
+    def __init__(self, x, alpha=0.05, max_points=1000):  #max points was 1000
         # compute Mardia test coefficient
         n, p = x.shape   # num points, num dimensions
         mu = np.mean(x, axis=0)
@@ -329,23 +370,109 @@ def test():
     _check_entropy(stats.norm(100, 8), N=12000)
     _check_entropy(stats.multivariate_normal(cov=np.diag([1, 12**2, 0.2**2])))
 
-def process_fit():
+def process_fit(dirname='MCMC', dependent_parameters=[], independent_parameters=[]):
+
+    N_entropy = 20000 #was 10000
+    N_norm = 20000 #was 2500
+
+    mvn_entropy = 0
+    kdn_entropy = 0
+    mvn_entropy_marginal  = 0
+    kdn_entropy_marginal = 0
 
     # read MCMC result and save sErr.dat
     fit_interactor = rs.CRefl1DInteractor()
-    raw_data = fit_interactor.fnLoadStatData()
+    points, parnames, logp = fit_interactor.fnLoadMCMCResults(dirname=dirname)
 
-    # load MCMC result into numpy array
-    data = np.loadtxt('sErr.dat', skiprows=1)
+    # Do statistics over points
+    points_median = np.median(points, axis=0)
+    points_std = np.std(points, axis=0)
 
-    file = open(sFileName, "r")
-    content = file.readlines()
-    file.close()
-    parnames = content[0].split()
+    mvnentropy = MVNEntropy(points)
+    mvn_entropy = mvnentropy.entropy
 
-    mvnentropy = MVNEntropy(data)
-    print (mvnentropy.entropy)
+    mvnentropymarg = MVNEntropy_marginal(points, independent_parameters)
+    mvn_entropy_marginal = mvnentropymarg.entropy
+
+
+    # Use a random subset to estimate density
+    if N_norm >= len(logp):
+        norm_points = points
+    else:
+        idx = permutation(len(points))[:N_entropy]
+        norm_points = points[idx]
+
+    # Use a different subset to estimate the scale factor between density
+    # and logp.
+    if N_entropy >= len(logp):
+        entropy_points, eval_logp = points, logp
+    else:
+        idx = permutation(len(points))[:N_entropy]
+        entropy_points, eval_logp = points[idx], logp[idx]
+
+    log_scale = max(eval_logp)
+    eval_logp -= log_scale
+
+    dep_type = ''
+    for _ in range(len(dependent_parameters)):
+        dep_type = dep_type + 'c'
+    indep_type = ''
+    for _ in range(len(independent_parameters)):
+        indep_type = indep_type + 'c'
+
+    pdf = stm.KDEMultivariate(data=norm_points, var_type=dep_type+indep_type)
+
+
+    # Compute entropy and uncertainty in nats
+    # rho = density(norm_points, entropy_points)
+    rho = pdf.pdf(entropy_points)
+
+    frac = exp(eval_logp)/rho
+    n_est, n_err = mean(frac), std(frac)
+    s_est = log(n_est) - mean(eval_logp)
+    # s_err = n_err/n_est
+    # print(n_est, n_err, s_est/LN2, s_err/LN2)
+    # print(np.median(frac), log(np.median(frac))/LN2, log(n_est)/LN2)
+
+    # return entropy and uncertainty in bits
+    kdn_entropy = s_est / LN2
+
+    dependent_points = norm_points[:, dependent_parameters]
+    independent_points = norm_points[:, independent_parameters]
+
+
+    # create conditional PDF
+    # pdf = stm.KDEMultivariate(data=norm_points, var_type=dep_type+indep_type)
+    # the switching of dependent and independent parameters here and later at the evaluation is on purpose,
+    # as we do calculate the inverse conditional PDF with respect to the target conditional entropy
+    cpdf = stm.KDEMultivariateConditional(endog=independent_points, exog=dependent_points,
+                                          dep_type=indep_type, indep_type=dep_type, bw='normal_reference')
+
+    # switch over to evaluation points
+    dependent_points = entropy_points[:, dependent_parameters]
+    independent_points = entropy_points[:, independent_parameters]
+
+
+    # iterate over number of observations to calculate the sum of log(p(total) / p(dependent|independent))
+    cs_est = 0
+    # This is a pure KDE estimate of the marginal entropy not using the value determined by the Kramer algorithm
+    # A brief comparison found no significant differences to the marginal KDN estimate
+    # cs_est_kde = 0
+
+    for i in range(len(eval_logp)):
+        # joint_kde = log(pdf.pdf(entropy_points[i]))
+        joint_ent = eval_logp[i] - log(n_est)
+        cond_ent = log(cpdf.pdf(endog_predict=independent_points[i], exog_predict=dependent_points[i]))
+        cs_est = cs_est - joint_ent + cond_ent
+        # cs_est_kde = cs_est_kde - joint_kde + cond_ent
+
+    kdn_entropy_marginal = cs_est / LN2 / float(len(eval_logp))
+    # kde_entropy_marginal = cs_est_kde / LN2 / float(len(eval_logp))
+
+    # return MVN entropy, KDN entropy, conditional MVN entropy, conditional KDN entropy
+    return mvn_entropy, kdn_entropy, mvn_entropy_marginal, kdn_entropy_marginal, points_median, points_std
 
 if __name__ == "__main__":  # pragma: no cover
-    test()
-    mvn_entropy_test()
+    # test()
+    # mvn_entropy_test()
+    process_fit()

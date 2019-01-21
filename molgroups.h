@@ -1031,6 +1031,13 @@ public:
     virtual ~ssBLM_POPC_PIP() {};
 };
 
+class ssBLM_DPPC_d62DPPC: public ssBLM_quaternary
+{
+public:
+    ssBLM_DPPC_d62DPPC();
+    virtual ~ssBLM_DPPC_d62DPPC() {};
+};
+
 class ssBLM_POPC_POPS_PIP_chol: public ssBLM_quaternary
 {
 public:
