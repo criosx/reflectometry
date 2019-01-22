@@ -549,7 +549,8 @@ class CReflectometry:
 
     #-------------------------------------------------------------------------------
 
-    def fnCalculateEntropy(self, mcmcburn=16000, mcmcsteps=5000, deldir=True, convergence=2.0, miniter = 1, mode='water'):
+    def fnCalculateEntropy(self, mcmcburn=16000, mcmcsteps=5000, deldir=True, convergence=2.0, miniter = 1,
+                           mode='water', bFetchMode=False, bClusterMode=False):
 
     # calculates entropy while varying a set of parameters in parlist and
     # keeping others fixed as specified in simpar.dat
@@ -608,14 +609,20 @@ class CReflectometry:
 
             return conv_arr
 
-        def runmcmc(iteration, mcmcburn, mcmcsteps):
+        def runmcmc(iteration, mcmcburn, mcmcsteps, bClusterMode=False):
 
             # remove all MCMC directories
             call(['rm', '-r', 'MCMC_*'])
 
             # run MCMC
             self.fnMake()
-            lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+            if bClusterMode:
+                lCommand = ['python', '/home/hoogerhe/src/refl1d/bin/refl1d_cli.py', 'run.py', '--fit=dream', '--mpi',
+                            '--init=lhs', '--batch', '--pop=28']
+            else:
+                lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+            # For test purposes
+            # lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
             lCommand.append('--store=iteration_' + str(iteration))
             lCommand.append('--burn=' + str(mcmcburn))
             lCommand.append('--steps=' + str(mcmcsteps))
@@ -730,7 +737,7 @@ class CReflectometry:
                     if fabs(dMVN-dKDN) > convergence:
                         outlier = True
 
-                if outlier or invalid_result or insufficient_iterations or (n_MVN[itindex]==0):
+                if outlier or invalid_result or insufficient_iterations or (n_MVN[itindex]==0) or bFetchMode:
 
                     repeats = True
                     # set up fit limits and simulation parameters including parameters that are varied and
@@ -740,6 +747,7 @@ class CReflectometry:
                     priorentropy_marginal = 0
                     qrange = 0
                     pre = 0
+                    bPriorResultExists = path.isfile('iteration_'+str(iteration)+'/run-chain.mc')
                     for row in allpar.itertuples():  # cycle through all parameters
                         if row.par in steppar['par'].tolist():
                             lsim = steppar.loc[steppar['par']==row.par, 'l_sim'].iloc[0]
@@ -764,7 +772,8 @@ class CReflectometry:
                                 pre = simvalue
                             else:
                                 simpar.loc[simpar['par'] == row.par, 'value'] = simvalue
-                                self.fnReplaceParameterLimitsInSetup(row.par, lowersim, uppersim)
+                                if not bPriorResultExists or not bFetchMode:
+                                    self.fnReplaceParameterLimitsInSetup(row.par, lowersim, uppersim)
                                 if 'rho' in row.par:
                                     priorentropy += log((uppersim-lowersim)*1e6)/log(2)
                                 else:
@@ -782,7 +791,8 @@ class CReflectometry:
                             elif row.par == 'prefactor':
                                 pre = row.value
                             else:
-                                self.fnReplaceParameterLimitsInSetup(row.par, row.l_fit, row.u_fit)
+                                if not bPriorResultExists or not bFetchMode:
+                                    self.fnReplaceParameterLimitsInSetup(row.par, row.l_fit, row.u_fit)
                                 if 'rho' in row.par:
                                     priorentropy += log((row.u_fit-row.l_fit)*1e6)/log(2)
                                 else:
@@ -794,126 +804,141 @@ class CReflectometry:
                                     else:
                                         priorentropy_marginal += log(row.u_fit - row.l_fit) / log(2)
 
-                    simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
-                    self.fnSimulateReflectivity(mode=mode, pre=pre, qrange=qrange)
 
-                    runmcmc(iteration, mcmcburn, mcmcsteps)
+                    # if already a result exists (like from a cluster run), then only calculate the entropy
+                    # this can be specifically triggered by bFetch
+                    if not bPriorResultExists and not bFetchMode:
+                        simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
+                        self.fnSimulateReflectivity(mode=mode, pre=pre, qrange=qrange)
 
-                    # Calculate Entropy 10 times and average
-                    mvn_entropy = []
-                    kdn_entropy = []
-                    mvn_entropy_marginal = []
-                    kdn_entropy_marginal = []
+                        runmcmc(iteration, mcmcburn, mcmcsteps, bClusterMode)
 
-                    for j in range(5):  #was 10
-                        # calculate entropy
-                        a, b, c, d, e, f = entropy.process_fit(dirname='iteration_' + str(iteration),
-                                                         dependent_parameters=dependent_parameters,
-                                                         independent_parameters=independent_parameters)
-                        mvn_entropy.append(a)
-                        kdn_entropy.append(b)
-                        mvn_entropy_marginal.append(c)
-                        kdn_entropy_marginal.append(d)
+                    # do not run entropy calculation when on cluster
+                    if not bClusterMode and bPriorResultExists:
+                        # Calculate Entropy n times and average
+                        mvn_entropy = []
+                        kdn_entropy = []
+                        mvn_entropy_marginal = []
+                        kdn_entropy_marginal = []
 
-                    # remove outliers and average calculated entropies
-                    avg_MVN, std_MVN = average(mvn_entropy)
-                    avg_KDN, std_KDN = average(kdn_entropy)
-                    avg_MVN_marginal, std_MVN_marginal = average(mvn_entropy_marginal)
-                    avg_KDN_marginal, std_KDN_marginal = average(kdn_entropy_marginal)
+                        for j in range(5):  #was 10
+                            # calculate entropy
+                            a, b, c, d, e, f = entropy.process_fit(dirname='iteration_' + str(iteration),
+                                                             dependent_parameters=dependent_parameters,
+                                                             independent_parameters=independent_parameters)
+                            mvn_entropy.append(a)
+                            kdn_entropy.append(b)
+                            mvn_entropy_marginal.append(c)
+                            kdn_entropy_marginal.append(d)
 
-                    # don't average over parameter stats
-                    points_median = e
-                    points_std = f
+                        # remove outliers and average calculated entropies
+                        avg_MVN, std_MVN = average(mvn_entropy)
+                        avg_KDN, std_KDN = average(kdn_entropy)
+                        avg_MVN_marginal, std_MVN_marginal = average(mvn_entropy_marginal)
+                        avg_KDN_marginal, std_KDN_marginal = average(kdn_entropy_marginal)
 
-                    bValidResult = (std_KDN < convergence) and \
-                                   (priorentropy_marginal-avg_KDN_marginal > (-0.5) * len(dependent_parameters)) and \
-                                   (priorentropy - avg_KDN > (-0.5) * len(parlist))
+                        # don't average over parameter stats
+                        points_median = e
+                        points_std = f
 
-                    # no special treatment for first entry necessary, algorithm catches this
-                    if bValidResult:
-                        n_KDN[itindex] += 1.0
-                        n_MVN[itindex] += 1.0
-                        n_KDN_marginal[itindex] += 1.0
-                        n_MVN_marginal[itindex] += 1.0
-                        n = n_KDN[itindex]
+                        bValidResult = (std_KDN < convergence) and \
+                                       (priorentropy_marginal-avg_KDN_marginal > (-0.5) * len(dependent_parameters)) and \
+                                       (priorentropy - avg_KDN > (-0.5) * len(parlist))
 
-                        old_MVN = results_MVN[itindex]
-                        old_KDN = results_KDN[itindex]
-                        old_MVN_marginal = results_MVN_marginal[itindex]
-                        old_KDN_marginal = results_KDN_marginal[itindex]
+                        # no special treatment for first entry necessary, algorithm catches this
+                        if bValidResult:
+                            n_KDN[itindex] += 1.0
+                            n_MVN[itindex] += 1.0
+                            n_KDN_marginal[itindex] += 1.0
+                            n_MVN_marginal[itindex] += 1.0
+                            n = n_KDN[itindex]
 
-                        results_MVN[itindex] = running_mean(results_MVN[itindex], n, avg_MVN)
-                        results_KDN[itindex] = running_mean(results_KDN[itindex], n, avg_KDN)
-                        results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
-                        results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
-                        par_median[:, itindex[0], itindex[1]] = running_mean(par_median[:, itindex[0], itindex[1]], n,
-                                                                             points_median)
-                        # for par std the average is calculated, not a sqstd of par_median
-                        par_std[:, itindex[0], itindex[1]] = running_mean(par_std[:, itindex[0], itindex[1]], n,
-                                                                          points_std)
+                            old_MVN = results_MVN[itindex]
+                            old_KDN = results_KDN[itindex]
+                            old_MVN_marginal = results_MVN_marginal[itindex]
+                            old_KDN_marginal = results_KDN_marginal[itindex]
 
-                        sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
-                        sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
-                        sqstd_MVN_marginal[itindex] = running_sqstd(sqstd_MVN_marginal[itindex], n, avg_MVN_marginal,
-                                                                    old_MVN_marginal, results_MVN_marginal[itindex])
-                        sqstd_KDN_marginal[itindex] = running_sqstd(sqstd_KDN_marginal[itindex], n, avg_KDN_marginal,
-                                                                    old_KDN_marginal, results_KDN_marginal[itindex])
+                            results_MVN[itindex] = running_mean(results_MVN[itindex], n, avg_MVN)
+                            results_KDN[itindex] = running_mean(results_KDN[itindex], n, avg_KDN)
+                            results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
+                            results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
+                            par_median[:, itindex[0], itindex[1]] = running_mean(par_median[:, itindex[0], itindex[1]], n,
+                                                                                 points_median)
+                            # for par std the average is calculated, not a sqstd of par_median
+                            par_std[:, itindex[0], itindex[1]] = running_mean(par_std[:, itindex[0], itindex[1]], n,
+                                                                              points_std)
 
-                    #save results every iteration
-                    numpy.save('KDN_entropy', results_KDN, allow_pickle=False)
-                    numpy.save('MVN_entropy', results_MVN, allow_pickle=False)
-                    numpy.save('KDN_entropy_marginal', results_KDN_marginal, allow_pickle=False)
-                    numpy.save('MVN_entropy_marginal', results_MVN_marginal, allow_pickle=False)
-                    numpy.save('KDN_infocontent', priorentropy - results_KDN, allow_pickle=False)
-                    numpy.save('MVN_infocontent', priorentropy - results_MVN, allow_pickle=False)
-                    numpy.save('KDN_infocontent_marginal', priorentropy_marginal - results_KDN_marginal, allow_pickle=False)
-                    numpy.save('MVN_infocontent_marginal', priorentropy_marginal - results_MVN_marginal, allow_pickle=False)
-                    numpy.save('KDN_sqstd', sqstd_KDN, allow_pickle=False)
-                    numpy.save('MVN_sqstd', sqstd_MVN, allow_pickle=False)
-                    numpy.save('KDN_sqstd_marginal', sqstd_KDN_marginal, allow_pickle=False)
-                    numpy.save('MVN_sqstd_marginal', sqstd_MVN_marginal, allow_pickle=False)
-                    numpy.save('KDN_n', n_KDN, allow_pickle=False)
-                    numpy.save('MVN_n', n_MVN, allow_pickle=False)
-                    numpy.save('KDN_n_marginal', n_KDN_marginal, allow_pickle=False)
-                    numpy.save('MVN_n_marginal', n_MVN_marginal, allow_pickle=False)
-                    numpy.save('par_median', par_median, allow_pickle=False)
-                    numpy.save('par_std', par_std, allow_pickle=False)
+                            sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
+                            sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
+                            sqstd_MVN_marginal[itindex] = running_sqstd(sqstd_MVN_marginal[itindex], n, avg_MVN_marginal,
+                                                                        old_MVN_marginal, results_MVN_marginal[itindex])
+                            sqstd_KDN_marginal[itindex] = running_sqstd(sqstd_KDN_marginal[itindex], n, avg_KDN_marginal,
+                                                                        old_KDN_marginal, results_KDN_marginal[itindex])
 
-                    if deldir:
-                        call(['rm', 'iteration_'+str(iteration)+'/run-point.mc'])
-                        call(['rm', 'iteration_'+str(iteration)+'/run-chain.mc'])
-                        call(['rm', 'iteration_'+str(iteration)+'/run-stats.mc'])
+                        #save results every iteration
+                        numpy.save('KDN_entropy', results_KDN, allow_pickle=False)
+                        numpy.save('MVN_entropy', results_MVN, allow_pickle=False)
+                        numpy.save('KDN_entropy_marginal', results_KDN_marginal, allow_pickle=False)
+                        numpy.save('MVN_entropy_marginal', results_MVN_marginal, allow_pickle=False)
+                        numpy.save('KDN_infocontent', priorentropy - results_KDN, allow_pickle=False)
+                        numpy.save('MVN_infocontent', priorentropy - results_MVN, allow_pickle=False)
+                        numpy.save('KDN_infocontent_marginal', priorentropy_marginal - results_KDN_marginal, allow_pickle=False)
+                        numpy.save('MVN_infocontent_marginal', priorentropy_marginal - results_MVN_marginal, allow_pickle=False)
+                        numpy.save('KDN_sqstd', sqstd_KDN, allow_pickle=False)
+                        numpy.save('MVN_sqstd', sqstd_MVN, allow_pickle=False)
+                        numpy.save('KDN_sqstd_marginal', sqstd_KDN_marginal, allow_pickle=False)
+                        numpy.save('MVN_sqstd_marginal', sqstd_MVN_marginal, allow_pickle=False)
+                        numpy.save('KDN_n', n_KDN, allow_pickle=False)
+                        numpy.save('MVN_n', n_MVN, allow_pickle=False)
+                        numpy.save('KDN_n_marginal', n_KDN_marginal, allow_pickle=False)
+                        numpy.save('MVN_n_marginal', n_MVN_marginal, allow_pickle=False)
+                        numpy.save('par_median', par_median, allow_pickle=False)
+                        numpy.save('par_std', par_std, allow_pickle=False)
 
-                    # save to txt when not more than two-dimensional array
-                    if len(steplist) <= 2:
-                        numpy.savetxt('MVN_entropy.txt', results_MVN)
-                        numpy.savetxt('KDN_entropy.txt', results_KDN)
-                        numpy.savetxt('MVN_entropy_marginal.txt', results_MVN_marginal)
-                        numpy.savetxt('KDN_entropy_marginal.txt', results_KDN_marginal)
-                        numpy.savetxt('MVN_infocontent.txt', priorentropy - results_MVN)
-                        numpy.savetxt('KDN_infocontent.txt', priorentropy - results_KDN)
-                        numpy.savetxt('MVN_infocontent_marginal.txt', priorentropy_marginal - results_MVN_marginal)
-                        numpy.savetxt('KDN_infocontent_marginal.txt', priorentropy_marginal - results_KDN_marginal)
-                        numpy.savetxt('MVN_sqstd.txt', sqstd_MVN)
-                        numpy.savetxt('KDN_sqstd.txt', sqstd_KDN)
-                        numpy.savetxt('MVN_sqstd_marginal.txt', sqstd_MVN_marginal)
-                        numpy.savetxt('KDN_sqstd_marginal.txt', sqstd_KDN_marginal)
-                        numpy.savetxt('MVN_n.txt', n_MVN)
-                        numpy.savetxt('KDN_n.txt', n_KDN)
-                        numpy.savetxt('MVN_n_marginal.txt', n_MVN_marginal)
-                        numpy.savetxt('KDN_n_marginal.txt', n_KDN_marginal)
-                        i=0
-                        for parname in parlist:
-                            numpy.savetxt('Par_'+parname+'_median.txt', par_median[i])
-                            numpy.savetxt('Par_'+parname+'_std.txt', par_std[i])
-                            i += 1
+                        if deldir:
+                            call(['rm', 'iteration_'+str(iteration)+'/run-point.mc'])
+                            call(['rm', 'iteration_'+str(iteration)+'/run-chain.mc'])
+                            call(['rm', 'iteration_'+str(iteration)+'/run-stats.mc'])
+
+                        # save to txt when not more than two-dimensional array
+                        if len(steplist) <= 2:
+                            numpy.savetxt('MVN_entropy.txt', results_MVN)
+                            numpy.savetxt('KDN_entropy.txt', results_KDN)
+                            numpy.savetxt('MVN_entropy_marginal.txt', results_MVN_marginal)
+                            numpy.savetxt('KDN_entropy_marginal.txt', results_KDN_marginal)
+                            numpy.savetxt('MVN_infocontent.txt', priorentropy - results_MVN)
+                            numpy.savetxt('KDN_infocontent.txt', priorentropy - results_KDN)
+                            numpy.savetxt('MVN_infocontent_marginal.txt', priorentropy_marginal - results_MVN_marginal)
+                            numpy.savetxt('KDN_infocontent_marginal.txt', priorentropy_marginal - results_KDN_marginal)
+                            numpy.savetxt('MVN_sqstd.txt', sqstd_MVN)
+                            numpy.savetxt('KDN_sqstd.txt', sqstd_KDN)
+                            numpy.savetxt('MVN_sqstd_marginal.txt', sqstd_MVN_marginal)
+                            numpy.savetxt('KDN_sqstd_marginal.txt', sqstd_KDN_marginal)
+                            numpy.savetxt('MVN_n.txt', n_MVN)
+                            numpy.savetxt('KDN_n.txt', n_KDN)
+                            numpy.savetxt('MVN_n_marginal.txt', n_MVN_marginal)
+                            numpy.savetxt('KDN_n_marginal.txt', n_KDN_marginal)
+                            i=0
+                            for parname in parlist:
+                                numpy.savetxt('Par_'+parname+'_median.txt', par_median[i])
+                                numpy.savetxt('Par_'+parname+'_std.txt', par_std[i])
+                                i += 1
 
                 iteration += 1
                 it.iternext()
 
-            if (not repeats) and (not no_zeros):
+            # Repeats is False while no_zeros is False means that the algorithm went over all iterations but has not
+            # found one with an insufficient number of results or invalid results. This means now, one can check for
+            # outliers and improve the statistics.
+            if repeats is False and no_zeros is False:
                 repeats = True
-                no_zeroes = True
+                no_zeros = True
+
+            # Never repeat iterations in cluster or when just calculating entropies
+            if bClusterMode or bFetchMode:
+                repeats = False
+
+
 
     #-------------------------------------------------------------------------------
 
@@ -4224,6 +4249,8 @@ if __name__ == '__main__':
                 convergence =2.0
                 miniter = 1
                 mode = 'water'
+                bClusterMode = False
+                bFetchMode = False
                 while i < len(argv):
                     if argv[i] == '-burn':
                         burn = int(argv[i+1])
@@ -4240,8 +4267,14 @@ if __name__ == '__main__':
                     elif argv[i] == '-mode':
                         mode = argv[i+1]
                         i += 2
+                    elif argv[i] == '-cluster':
+                        bClusterMode = True
+                        i += 1
+                    elif argv[i] == '-fetch':
+                        bFetchMode = True
+                        i += 1
                 ReflPar.fnCalculateEntropy(mcmcburn=burn, mcmcsteps=steps, convergence=convergence, miniter=miniter,
-                                           mode=mode)
+                                           mode=mode, bClusterMode=bClusterMode, bFetchMode=bFetchMode)
                 break
             elif argv[i] == '-f':
                 if len(argv) > i + 1:
