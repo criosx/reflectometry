@@ -617,7 +617,7 @@ class CReflectometry:
             # run MCMC
             self.fnMake()
             if bClusterMode:
-                lCommand = ['python', '/home/hoogerhe/src/refl1d/bin/refl1d_cli.py', 'run.py', '--fit=dream', '--mpi',
+                lCommand = ['mpirun', '-np', '112', 'python', '/home/hoogerhe/src/refl1d/bin/refl1d_cli.py', 'run.py', '--fit=dream', '--mpi',
                             '--init=lhs', '--batch', '--pop=28']
             else:
                 lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
