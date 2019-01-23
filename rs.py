@@ -14,7 +14,7 @@ from os import getcwd, remove, rename, path, kill, devnull
 from random import seed, normalvariate, random
 from re import VERBOSE, IGNORECASE, compile
 from scipy import stats, sqrt, special, ndimage, signal
-from shutil import rmtree
+from shutil import rmtree, make_archive
 from string import split
 from sys import argv, exit
 from subprocess import call, Popen
@@ -609,24 +609,53 @@ class CReflectometry:
 
             return conv_arr
 
-        def runmcmc(iteration, mcmcburn, mcmcsteps, bClusterMode=False):
+        def runmcmc(iteration, mcmcburn, mcmcsteps, joblist, jobmax, bClusterMode=False):
 
-            # remove all MCMC directories
-            call(['rm', '-r', 'MCMC_*'])
-
-            # run MCMC
-            self.fnMake()
+            # wait for a job to finish before submitting next cluster job
             if bClusterMode:
-                lCommand = ['mpirun', '-np', '112', 'python', '/home/hoogerhe/src/refl1d/bin/refl1d_cli.py', 'run.py', '--fit=dream', '--mpi',
-                            '--init=lhs', '--batch', '--pop=28']
+               joblist = waitforjob(joblist, jobmax)
+
+            # copy garefl/refl1d files into directory
+            dirname = 'iteration_' + str(iteration)
+            if not path.isdir(dirname):
+                call(['mkdir', dirname])
+            call(['rm', '-r', dirname+'/save'])
+            call('cp *.dat '+dirname, shell=True)
+            call('cp *.cc ' + dirname, shell=True)
+            call('cp *.h ' + dirname, shell=True)
+            call('cp *.o ' + dirname, shell=True)
+            call('cp *.py ' + dirname, shell=True)
+            call('cp *.pyc ' + dirname, shell=True)
+            call(['cp', 'Makefile', dirname])
+
+            # run MCMC either cluster or local
+            self.fnMake(dirname=dirname)
+            if bClusterMode:
+                call('#SBATCH --job-name=entropy'+str(iteration), shell=True)
+                call('#SBATCH -A mc4s9np', shell=True)
+                call('#SBATCH -p RM', shell=True)
+                call('#SBATCH -t 02:00:00', shell=True)
+                call('#SBATCH -N 4', shell=True)
+                call('#SBATCH --ntasks-per-node 28', shell=True)
+
+                # lCommand = ['mpirun', '-np', '112', 'python', '/home/hoogerhe/src/refl1d/bin/refl1d_cli.py', dirname+'/run.py', '--fit=dream', '--mpi',
+                #            '--init=lhs', '--batch', '--pop=28', '--time=1.9']
+                # For testing purposes
+                lCommand = ['refl1d_cli.py', dirname + '/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+                joblist.append(iteration)
             else:
-                lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
-            # For test purposes
-            # lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
-            lCommand.append('--store=iteration_' + str(iteration))
+                lCommand = ['refl1d_cli.py', dirname+'/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+
+            lCommand.append('--store='+dirname+'/save')
             lCommand.append('--burn=' + str(mcmcburn))
             lCommand.append('--steps=' + str(mcmcsteps))
-            call(lCommand)
+
+            if bClusterMode:
+                Popen(lCommand)
+            else:
+                call(lCommand)
+
+            return joblist
 
         def running_mean(current_mean, n, new_point):
             # see Tony Finch, Incremental calculation of weighted mean and variance
@@ -635,6 +664,25 @@ class CReflectometry:
         def running_sqstd(current_sqstd, n, new_point, previous_mean, current_mean):
             # see Tony Finch, Incremental calculation of weighted mean and variance
             return (current_sqstd * (n - 1) + (new_point - previous_mean) * (new_point - current_mean))/n
+
+        def waitforjob(joblist, jobmax, bFinish=False):
+            # finish flag means that parent is waiting for all jobs to finish and not because of a too long
+            # job queue
+            if len(joblist) >= jobmax or bFinish:
+                repeat = True
+                while repeat:
+                    for job in joblist:
+                        if path.isfile('iteration_' + str(job) + '/save/run-chain.mc'):
+                            # wait 2 minutes to allow all output files to be written
+                            sleep(180)
+                            # zip up finished job
+                            make_archive('iteration_' + str(job), 'zip', 'iteration_' + str(job))
+                            call(['rm', '-r', 'iteration_' + str(job)])
+                            joblist.remove(job)
+                            repeat = False
+                            break
+                    sleep(60)
+            return joblist
 
         # all parameters from entropypar.dat
         allpar = pandas.read_csv('entropypar.dat', sep=' ', header=None,
@@ -650,6 +698,13 @@ class CReflectometry:
         dependent_parameters = []
         independent_parameters = []
         parlist = []
+        joblist = []
+        jobmax =10
+
+        # fetch mode and cluster mode are exclusive
+        if bFetchMode and bClusterMode:
+            bClusterMode = False
+
         i = 0
         for row in allpar.itertuples():
             if row.type == 'i' or row.type == 'fi':
@@ -701,8 +756,8 @@ class CReflectometry:
             sqstd_KDN = numpy.zeros(results_KDN.shape)
             sqstd_MVN_marginal = numpy.zeros(results_MVN_marginal.shape)
             sqstd_KDN_marginal = numpy.zeros(results_KDN_marginal.shape)
-            par_median = numpy.zeros((len(parlist), results_MVN.shape[0], results_MVN.shape[1]))
-            par_std = numpy.zeros((len(parlist), results_MVN.shape[0], results_MVN.shape[1]))
+            par_median = numpy.zeros((len(parlist),)+results_MVN.shape)
+            par_std = numpy.zeros((len(parlist),)+results_MVN.shape)
 
         repeats = True
         #indicator whether every systematic variation has at least one result
@@ -747,7 +802,8 @@ class CReflectometry:
                     priorentropy_marginal = 0
                     qrange = 0
                     pre = 0
-                    bPriorResultExists = path.isfile('iteration_'+str(iteration)+'/run-chain.mc')
+                    bUnzippedPriorResult = path.isfile('iteration_'+str(iteration)+'/save/run-chain.mc')
+                    bPriorResultExists = bUnzippedPriorResult or path.isfile('iteration_'+str(iteration)+'.zip')
                     for row in allpar.itertuples():  # cycle through all parameters
                         if row.par in steppar['par'].tolist():
                             lsim = steppar.loc[steppar['par']==row.par, 'l_sim'].iloc[0]
@@ -804,17 +860,28 @@ class CReflectometry:
                                     else:
                                         priorentropy_marginal += log(row.u_fit - row.l_fit) / log(2)
 
-
-                    # if already a result exists (like from a cluster run), then only calculate the entropy
-                    # this can be specifically triggered by bFetch
-                    if not bPriorResultExists and not bFetchMode:
+                    if (not bPriorResultExists and not bFetchMode) or (bClusterMode and bUnzippedPriorResult):
+                        # fetch mode and cluster mode are exclusive
+                        # there should be no unzipped results in cluster mode, as cluster mode performs only one single
+                        # iteration over the parameter space, because the entropy has to be calculated offsite
+                        # therefore, if an unzipped result is found, it is ignored
                         simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
                         self.fnSimulateReflectivity(mode=mode, pre=pre, qrange=qrange)
+                        joblist = runmcmc(iteration, mcmcburn, mcmcsteps, joblist, jobmax, bClusterMode)
 
-                        runmcmc(iteration, mcmcburn, mcmcsteps, bClusterMode)
-
+                    # Entropy calculation
                     # do not run entropy calculation when on cluster
                     if not bClusterMode and bPriorResultExists:
+
+                        # check if result directory is zipped. If yes, unzip.
+                        if path.isfile('iteration_'+str(iteration)+'.zip'):
+                            if not path.isfile('iteration_'+str(iteration)+'/save/run-chain.mc'):
+                                # if a zip file and unzipped file exists -> prefer the unzipped file
+                                File = zipfile.ZipFile('iteration_'+str(iteration)+'.zip', 'r')
+                                File.extractall(path.dirname('iteration_'+str(iteration)+'.zip'))
+                                File.close()
+                            call(['rm', 'iteration_' + str(iteration) + '.zip'])
+
                         # Calculate Entropy n times and average
                         mvn_entropy = []
                         kdn_entropy = []
@@ -823,7 +890,7 @@ class CReflectometry:
 
                         for j in range(5):  #was 10
                             # calculate entropy
-                            a, b, c, d, e, f = entropy.process_fit(dirname='iteration_' + str(iteration),
+                            a, b, c, d, e, f = entropy.process_fit(dirname='iteration_' + str(iteration)+'/save',
                                                              dependent_parameters=dependent_parameters,
                                                              independent_parameters=independent_parameters)
                             mvn_entropy.append(a)
@@ -862,11 +929,10 @@ class CReflectometry:
                             results_KDN[itindex] = running_mean(results_KDN[itindex], n, avg_KDN)
                             results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
                             results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
-                            par_median[:, itindex[0], itindex[1]] = running_mean(par_median[:, itindex[0], itindex[1]], n,
-                                                                                 points_median)
-                            # for par std the average is calculated, not a sqstd of par_median
-                            par_std[:, itindex[0], itindex[1]] = running_mean(par_std[:, itindex[0], itindex[1]], n,
-                                                                              points_std)
+                            for i in range(par_median.shape[0]):
+                                par_median[(i,)+itindex] = running_mean(par_median[(1,)+itindex], n, points_median)
+                                # for par std the average is calculated, not a sqstd of par_median
+                                par_std[(i,)+itindex] = running_mean(par_std[(i,)+itindex], n, points_std)
 
                             sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
                             sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
@@ -896,9 +962,9 @@ class CReflectometry:
                         numpy.save('par_std', par_std, allow_pickle=False)
 
                         if deldir:
-                            call(['rm', 'iteration_'+str(iteration)+'/run-point.mc'])
-                            call(['rm', 'iteration_'+str(iteration)+'/run-chain.mc'])
-                            call(['rm', 'iteration_'+str(iteration)+'/run-stats.mc'])
+                            call(['rm', 'iteration_'+str(iteration)+'/save/run-point.mc'])
+                            call(['rm', 'iteration_'+str(iteration)+'/save/run-chain.mc'])
+                            call(['rm', 'iteration_'+str(iteration)+'/save/run-stats.mc'])
 
                         # save to txt when not more than two-dimensional array
                         if len(steplist) <= 2:
@@ -937,6 +1003,11 @@ class CReflectometry:
             # Never repeat iterations in cluster or when just calculating entropies
             if bClusterMode or bFetchMode:
                 repeats = False
+
+        # wait for all jobs to finish
+        if bClusterMode:
+            while joblist:
+                joblist = waitforjob(joblist, jobmax, bFinish=True)
 
 
 
@@ -1945,7 +2016,8 @@ class CReflectometry:
 
             #-------------------------------------------------------------------------------
 
-    def fnLoadParameters(self, sPath='./'):  #loads the last row's parameters, and
+    def fnLoadParameters(self, sPath='./'):
+        #loads the last row's parameters, and
         #ranges from par.dat and stores them into
         #self.diParameters; parameter names are
         #read from setup.c, since par.dat truncates
@@ -2095,12 +2167,12 @@ class CReflectometry:
 
     #-------------------------------------------------------------------------------
 
-    def fnMake(self):
+    def fnMake(self, dirname='./'):
     #make setup.c and print sys output
-        call(["rm", "-f", "setup.o"])
+        call(["rm", "-f", dirname+"setup.o"])
         call(["sync"])  #synchronize file system
         sleep(1)  #wait for system to clean up
-        call(["make"])
+        call(['make', '-C', dirname])
 
         #-------------------------------------------------------------------------------
 
