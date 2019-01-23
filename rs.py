@@ -638,10 +638,11 @@ class CReflectometry:
                 call('#SBATCH -N 4', shell=True)
                 call('#SBATCH --ntasks-per-node 28', shell=True)
 
-                # lCommand = ['mpirun', '-np', '112', 'python', '/home/hoogerhe/src/refl1d/bin/refl1d_cli.py', dirname+'/run.py', '--fit=dream', '--mpi',
-                #            '--init=lhs', '--batch', '--pop=28', '--time=1.9']
+                lCommand = ['mpirun', '-np', '112', 'python', '/home/hoogerhe/src/refl1d/bin/refl1d_cli.py',
+                            dirname+'/run.py', '--fit=dream', '--mpi', '--init=lhs', '--batch', '--pop=28',
+                            '--time=1.9']
                 # For testing purposes
-                lCommand = ['refl1d_cli.py', dirname + '/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+                # lCommand = ['refl1d_cli.py', dirname + '/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
                 joblist.append(iteration)
             else:
                 lCommand = ['refl1d_cli.py', dirname+'/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
