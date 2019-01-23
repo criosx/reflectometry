@@ -633,7 +633,7 @@ class CReflectometry:
             if bClusterMode:
                 script=[]
                 script.append('#!/bin/bash\n')
-                script.append('#SBATCH --job-name=entropy'+str(iteration)+'\n')
+                script.append('#SBATCH --job-name=entro'+str(iteration)+'\n')
                 script.append('#SBATCH -A mc4s9np\n')
                 script.append('#SBATCH -p RM\n')
                 script.append('#SBATCH -t 02:00:00\n')
