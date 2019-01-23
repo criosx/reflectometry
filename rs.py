@@ -648,7 +648,7 @@ class CReflectometry:
                 script.append('export PYTHONPATH=/home/hoogerhe/bin/lib/python2.7/site-packages:/home/hoogerhe/src/bumps\n')
                 script.append('\n')
                 script.append('mpirun -np 112 python /home/hoogerhe/src/refl1d/bin/refl1d_cli.py '+dirname+
-                              '/run.py --fit=dream --mpi --init=lhs --batch --pop=28 --time=1.9 --store='+dirname+
+                              '/run.py --fit=dream --mpi --init=lhs --batch --pop=28 --time=1.9 --thin=20 --store='+dirname+
                               '/save --burn='+str(mcmcburn)+' --steps='+str(mcmcsteps)+'\n')
                 #write runscript
                 file = open(dirname+'/runscript', 'w')
@@ -657,7 +657,10 @@ class CReflectometry:
 
                 lCommand = ['sbatch',dirname+'/runscript']
                 # For testing purposes
-                # lCommand = ['refl1d_cli.py', dirname + '/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+                # lCommand = ['refl1d_cli.py', dirname + '/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch', '--thin=200']
+                # lCommand.append('--store='+dirname+'/save')
+                # lCommand.append('--burn=' + str(mcmcburn))
+                # lCommand.append('--steps=' + str(mcmcsteps))
                 Popen(lCommand)
                 joblist.append(iteration)
 
@@ -891,7 +894,8 @@ class CReflectometry:
                             if not path.isfile('iteration_'+str(iteration)+'/save/run-chain.mc'):
                                 # if a zip file and unzipped file exists -> prefer the unzipped file
                                 File = zipfile.ZipFile('iteration_'+str(iteration)+'.zip', 'r')
-                                File.extractall(path.dirname('iteration_'+str(iteration)+'.zip'))
+                                call(['mkdir', 'iteration_'+str(iteration)])
+                                File.extractall('iteration_'+str(iteration))
                                 File.close()
                             call(['rm', 'iteration_' + str(iteration) + '.zip'])
 
@@ -943,9 +947,10 @@ class CReflectometry:
                             results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
                             results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
                             for i in range(par_median.shape[0]):
-                                par_median[(i,)+itindex] = running_mean(par_median[(1,)+itindex], n, points_median)
+                                itindex2=tuple(i,)+itindex
+                                par_median[itindex2] = running_mean(par_median[itindex2], n, points_median)
                                 # for par std the average is calculated, not a sqstd of par_median
-                                par_std[(i,)+itindex] = running_mean(par_std[(i,)+itindex], n, points_std)
+                                par_std[itindex2] = running_mean(par_std[itindex2], n, points_std)
 
                             sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
                             sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
