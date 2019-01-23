@@ -631,29 +631,41 @@ class CReflectometry:
             # run MCMC either cluster or local
             self.fnMake(dirname=dirname)
             if bClusterMode:
-                call('#SBATCH --job-name=entropy'+str(iteration), shell=True)
-                call('#SBATCH -A mc4s9np', shell=True)
-                call('#SBATCH -p RM', shell=True)
-                call('#SBATCH -t 02:00:00', shell=True)
-                call('#SBATCH -N 4', shell=True)
-                call('#SBATCH --ntasks-per-node 28', shell=True)
+                script=[]
+                script.append('#!/bin/bash\n')
+                script.append('#SBATCH --job-name=entropy'+str(iteration)+'\n')
+                script.append('#SBATCH -A mc4s9np\n')
+                script.append('#SBATCH -p RM\n')
+                script.append('#SBATCH -t 02:00:00\n')
+                script.append('#SBATCH -N 4\n')
+                script.append('#SBATCH --ntasks-per-node 28\n')
+                script.append('\n')
+                script.append('set +x\n')
+                script.append('cd $SLURM_SUBMIT_DIR\n')
+                #script.append('cd '+dirname+'\n')
+                script.append('\n')
+                script.append('module load python/2.7.11_gcc\n')
+                script.append('export PYTHONPATH=/home/hoogerhe/bin/lib/python2.7/site-packages:/home/hoogerhe/src/bumps\n')
+                script.append('\n')
+                script.append('mpirun -np 112 python /home/hoogerhe/src/refl1d/bin/refl1d_cli.py '+dirname+
+                              '/run.py --fit=dream --mpi --init=lhs --batch --pop=28 --time=1.9 --store='+dirname+
+                              '/save --burn='+str(mcmcburn)+' --steps='+str(mcmcsteps)+'\n')
+                #write runscript
+                file = open(dirname+'/runscript', 'w')
+                file.writelines(script)
+                file.close()
 
-                lCommand = ['mpirun', '-np', '112', 'python', '/home/hoogerhe/src/refl1d/bin/refl1d_cli.py',
-                            dirname+'/run.py', '--fit=dream', '--mpi', '--init=lhs', '--batch', '--pop=28',
-                            '--time=1.9']
+                lCommand = ['sbatch',dirname+'/runscript']
                 # For testing purposes
                 # lCommand = ['refl1d_cli.py', dirname + '/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+                Popen(lCommand)
                 joblist.append(iteration)
+
             else:
                 lCommand = ['refl1d_cli.py', dirname+'/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
-
-            lCommand.append('--store='+dirname+'/save')
-            lCommand.append('--burn=' + str(mcmcburn))
-            lCommand.append('--steps=' + str(mcmcsteps))
-
-            if bClusterMode:
-                Popen(lCommand)
-            else:
+                lCommand.append('--store='+dirname+'/save')
+                lCommand.append('--burn=' + str(mcmcburn))
+                lCommand.append('--steps=' + str(mcmcsteps))
                 call(lCommand)
 
             return joblist
