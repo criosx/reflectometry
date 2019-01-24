@@ -947,23 +947,9 @@ class CReflectometry:
                             results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
                             results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
                             for i in range(par_median.shape[0]):
-                                #This is a stupid solution, but I did not find a way to make this work generically, yet
-                                if len(itindex)==1:
-                                    par_median[i, itindex[0]] = running_mean(par_median[i, itindex[0]], n, points_median)
-                                    # for par std the average is calculated, not a sqstd of par_median
-                                    par_std[i, itindex[0]] = running_mean(par_std[i, itindex[0]], n, points_std)
-                                elif len(itindex)==2:
-                                    par_median[i, itindex[0], itindex[1]] = running_mean(par_median[i, itindex[0],
-                                                                    itindex[1]], n, points_median)
-                                    # for par std the average is calculated, not a sqstd of par_median
-                                    par_std[i, itindex[0], itindex[1]] = running_mean(par_std[i, itindex[0],
-                                                                    itindex[1]], n, points_std)
-                                elif len(itindex)==3:
-                                    par_median[i, itindex[0], itindex[1], itindex[2]] = running_mean(par_median[i,
-                                                                itindex[0], itindex[1], itindex[2]], n, points_median)
-                                    # for par std the average is calculated, not a sqstd of par_median
-                                    par_std[i, itindex[0], itindex[1], itindex[2]] = running_mean(par_std[i, itindex[0],
-                                                                    itindex[1], itindex[2]], n, points_std)
+                                par_median[(i,)+itindex] = running_mean(par_median[(i,)+itindex], n, points_median[i])
+                                # for par std the average is calculated, not a sqstd of par_median
+                                par_std[(i,)+itindex] = running_mean(par_std[(i,)+itindex], n, points_std[i])
 
                             sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
                             sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
@@ -4377,7 +4363,7 @@ if __name__ == '__main__':
                     elif argv[i] == '-fetch':
                         bFetchMode = True
                         i += 1
-                    elif argv[1] == '-time':
+                    elif argv[i] == '-time':
                         time = int(argv[i+1])
                         i += 2
                 ReflPar.fnCalculateEntropy(mcmcburn=burn, mcmcsteps=steps, convergence=convergence, miniter=miniter,
