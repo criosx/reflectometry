@@ -550,7 +550,7 @@ class CReflectometry:
     #-------------------------------------------------------------------------------
 
     def fnCalculateEntropy(self, mcmcburn=16000, mcmcsteps=5000, deldir=True, convergence=2.0, miniter = 1,
-                           mode='water', bFetchMode=False, bClusterMode=False):
+                           mode='water', bFetchMode=False, bClusterMode=False, time=2):
 
     # calculates entropy while varying a set of parameters in parlist and
     # keeping others fixed as specified in simpar.dat
@@ -609,7 +609,7 @@ class CReflectometry:
 
             return conv_arr
 
-        def runmcmc(iteration, mcmcburn, mcmcsteps, joblist, jobmax, bClusterMode=False):
+        def runmcmc(iteration, mcmcburn, mcmcsteps, joblist, jobmax, bClusterMode=False, time=2):
 
             # wait for a job to finish before submitting next cluster job
             if bClusterMode:
@@ -636,7 +636,7 @@ class CReflectometry:
                 script.append('#SBATCH --job-name=entro'+str(iteration)+'\n')
                 script.append('#SBATCH -A mc4s9np\n')
                 script.append('#SBATCH -p RM\n')
-                script.append('#SBATCH -t 02:00:00\n')
+                script.append('#SBATCH -t 0'+str(time)+':00:00\n')
                 script.append('#SBATCH -N 4\n')
                 script.append('#SBATCH --ntasks-per-node 28\n')
                 script.append('\n')
@@ -648,7 +648,7 @@ class CReflectometry:
                 script.append('export PYTHONPATH=/home/hoogerhe/bin/lib/python2.7/site-packages:/home/hoogerhe/src/bumps\n')
                 script.append('\n')
                 script.append('mpirun -np 112 python /home/hoogerhe/src/refl1d/bin/refl1d_cli.py '+dirname+
-                              '/run.py --fit=dream --mpi --init=lhs --batch --pop=28 --time=1.9 --thin=20 --store='+dirname+
+                              '/run.py --fit=dream --mpi --init=lhs --batch --pop=28 --time='+str(float(time)-0.1)+' --thin=20 --store='+dirname+
                               '/save --burn='+str(mcmcburn)+' --steps='+str(mcmcsteps)+'\n')
                 #write runscript
                 file = open(dirname+'/runscript', 'w')
@@ -883,7 +883,7 @@ class CReflectometry:
                         # therefore, if an unzipped result is found, it is ignored
                         simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
                         self.fnSimulateReflectivity(mode=mode, pre=pre, qrange=qrange)
-                        joblist = runmcmc(iteration, mcmcburn, mcmcsteps, joblist, jobmax, bClusterMode)
+                        joblist = runmcmc(iteration, mcmcburn, mcmcsteps, joblist, jobmax, bClusterMode, time=time)
 
                     # Entropy calculation
                     # do not run entropy calculation when on cluster
@@ -4354,6 +4354,7 @@ if __name__ == '__main__':
                 mode = 'water'
                 bClusterMode = False
                 bFetchMode = False
+                time =2
                 while i < len(argv):
                     if argv[i] == '-burn':
                         burn = int(argv[i+1])
@@ -4376,8 +4377,11 @@ if __name__ == '__main__':
                     elif argv[i] == '-fetch':
                         bFetchMode = True
                         i += 1
+                    elif argv[1] == '-time':
+                        time = int(argv[i+1])
+                        i += 2
                 ReflPar.fnCalculateEntropy(mcmcburn=burn, mcmcsteps=steps, convergence=convergence, miniter=miniter,
-                                           mode=mode, bClusterMode=bClusterMode, bFetchMode=bFetchMode)
+                                           mode=mode, bClusterMode=bClusterMode, bFetchMode=bFetchMode, time=time)
                 break
             elif argv[i] == '-f':
                 if len(argv) > i + 1:
