@@ -947,10 +947,23 @@ class CReflectometry:
                             results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
                             results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
                             for i in range(par_median.shape[0]):
-                                itindex2=tuple(i,)+itindex
-                                par_median[itindex2] = running_mean(par_median[itindex2], n, points_median)
-                                # for par std the average is calculated, not a sqstd of par_median
-                                par_std[itindex2] = running_mean(par_std[itindex2], n, points_std)
+                                #This is a stupid solution, but I did not find a way to make this work generically, yet
+                                if len(itindex)==1:
+                                    par_median[i, itindex[0]] = running_mean(par_median[i, itindex[0]], n, points_median)
+                                    # for par std the average is calculated, not a sqstd of par_median
+                                    par_std[i, itindex[0]] = running_mean(par_std[i, itindex[0]], n, points_std)
+                                elif len(itindex)==2:
+                                    par_median[i, itindex[0], itindex[1]] = running_mean(par_median[i, itindex[0],
+                                                                    itindex[1]], n, points_median)
+                                    # for par std the average is calculated, not a sqstd of par_median
+                                    par_std[i, itindex[0], itindex[1]] = running_mean(par_std[i, itindex[0],
+                                                                    itindex[1]], n, points_std)
+                                elif len(itindex)==3:
+                                    par_median[i, itindex[0], itindex[1], itindex[2]] = running_mean(par_median[i,
+                                                                itindex[0], itindex[1], itindex[2]], n, points_median)
+                                    # for par std the average is calculated, not a sqstd of par_median
+                                    par_std[i, itindex[0], itindex[1], itindex[2]] = running_mean(par_std[i, itindex[0],
+                                                                    itindex[1], itindex[2]], n, points_std)
 
                             sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
                             sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
