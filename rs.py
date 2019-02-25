@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Reflscript for ga_refl 9-Dec-2010 F.H.
-# Modified 30-Apr-2018 F.H.
+# Modified 25-Feb-2019 F.H.
 
 # issues: ISIS data files cannot contain headerline without specifier as they normally do, this will
 #        lead to MC not starting up
@@ -14,7 +14,7 @@ from os import getcwd, remove, rename, path, kill, devnull
 from random import seed, normalvariate, random
 from re import VERBOSE, IGNORECASE, compile
 from scipy import stats, sqrt, special, ndimage, signal
-from shutil import rmtree
+from shutil import rmtree, make_archive
 from string import split
 from sys import argv, exit
 from subprocess import call, Popen
@@ -549,7 +549,8 @@ class CReflectometry:
 
     #-------------------------------------------------------------------------------
 
-    def fnCalculateEntropy(self, mcmcburn=16000, mcmcsteps=5000, deldir=True, convergence=2.0, miniter = 1, mode='water'):
+    def fnCalculateEntropy(self, mcmcburn=16000, mcmcsteps=5000, deldir=True, convergence=2.0, miniter = 1,
+                           mode='water', bFetchMode=False, bClusterMode=False, time=2):
 
     # calculates entropy while varying a set of parameters in parlist and
     # keeping others fixed as specified in simpar.dat
@@ -608,18 +609,69 @@ class CReflectometry:
 
             return conv_arr
 
-        def runmcmc(iteration, mcmcburn, mcmcsteps):
+        def runmcmc(iteration, mcmcburn, mcmcsteps, joblist, jobmax, bClusterMode=False, time=2):
 
-            # remove all MCMC directories
-            call(['rm', '-r', 'MCMC_*'])
+            # wait for a job to finish before submitting next cluster job
+            if bClusterMode:
+               joblist = waitforjob(joblist, jobmax)
 
-            # run MCMC
-            self.fnMake()
-            lCommand = ['refl1d_cli.py', 'run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
-            lCommand.append('--store=iteration_' + str(iteration))
-            lCommand.append('--burn=' + str(mcmcburn))
-            lCommand.append('--steps=' + str(mcmcsteps))
-            call(lCommand)
+            # copy garefl/refl1d files into directory
+            dirname = 'iteration_' + str(iteration)
+            if not path.isdir(dirname):
+                call(['mkdir', dirname])
+            call(['rm', '-r', dirname+'/save'])
+            call('cp *.dat '+dirname, shell=True)
+            call('cp *.cc ' + dirname, shell=True)
+            call('cp *.h ' + dirname, shell=True)
+            call('cp *.o ' + dirname, shell=True)
+            call('cp *.py ' + dirname, shell=True)
+            call('cp *.pyc ' + dirname, shell=True)
+            call(['cp', 'Makefile', dirname])
+
+            # run MCMC either cluster or local
+            self.fnMake(dirname=dirname)
+            if bClusterMode:
+                script=[]
+                script.append('#!/bin/bash\n')
+                script.append('#SBATCH --job-name=entro'+str(iteration)+'\n')
+                script.append('#SBATCH -A mc4s9np\n')
+                script.append('#SBATCH -p RM\n')
+                script.append('#SBATCH -t 0'+str(time)+':00:00\n')
+                script.append('#SBATCH -N 4\n')
+                script.append('#SBATCH --ntasks-per-node 28\n')
+                script.append('\n')
+                script.append('set +x\n')
+                script.append('cd $SLURM_SUBMIT_DIR\n')
+                #script.append('cd '+dirname+'\n')
+                script.append('\n')
+                script.append('module load python/2.7.11_gcc\n')
+                script.append('export PYTHONPATH=/home/hoogerhe/bin/lib/python2.7/site-packages:/home/hoogerhe/src/bumps\n')
+                script.append('\n')
+                script.append('mpirun -np 112 python /home/hoogerhe/src/refl1d/bin/refl1d_cli.py '+dirname+
+                              '/run.py --fit=dream --mpi --init=lhs --batch --pop=28 --time='+str(float(time)-0.1)+' --thin=20 --store='+dirname+
+                              '/save --burn='+str(mcmcburn)+' --steps='+str(mcmcsteps)+'\n')
+                #write runscript
+                file = open(dirname+'/runscript', 'w')
+                file.writelines(script)
+                file.close()
+
+                lCommand = ['sbatch',dirname+'/runscript']
+                # For testing purposes
+                # lCommand = ['refl1d_cli.py', dirname + '/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch', '--thin=200']
+                # lCommand.append('--store='+dirname+'/save')
+                # lCommand.append('--burn=' + str(mcmcburn))
+                # lCommand.append('--steps=' + str(mcmcsteps))
+                Popen(lCommand)
+                joblist.append(iteration)
+
+            else:
+                lCommand = ['refl1d_cli.py', dirname+'/run.py', '--fit=dream', '--parallel', '--init=lhs', '--batch']
+                lCommand.append('--store='+dirname+'/save')
+                lCommand.append('--burn=' + str(mcmcburn))
+                lCommand.append('--steps=' + str(mcmcsteps))
+                call(lCommand)
+
+            return joblist
 
         def running_mean(current_mean, n, new_point):
             # see Tony Finch, Incremental calculation of weighted mean and variance
@@ -628,6 +680,25 @@ class CReflectometry:
         def running_sqstd(current_sqstd, n, new_point, previous_mean, current_mean):
             # see Tony Finch, Incremental calculation of weighted mean and variance
             return (current_sqstd * (n - 1) + (new_point - previous_mean) * (new_point - current_mean))/n
+
+        def waitforjob(joblist, jobmax, bFinish=False):
+            # finish flag means that parent is waiting for all jobs to finish and not because of a too long
+            # job queue
+            if len(joblist) >= jobmax or bFinish:
+                repeat = True
+                while repeat:
+                    for job in joblist:
+                        if path.isfile('iteration_' + str(job) + '/save/run-chain.mc'):
+                            # wait 2 minutes to allow all output files to be written
+                            sleep(180)
+                            # zip up finished job
+                            make_archive('iteration_' + str(job), 'zip', 'iteration_' + str(job))
+                            call(['rm', '-r', 'iteration_' + str(job)])
+                            joblist.remove(job)
+                            repeat = False
+                            break
+                    sleep(60)
+            return joblist
 
         # all parameters from entropypar.dat
         allpar = pandas.read_csv('entropypar.dat', sep=' ', header=None,
@@ -643,6 +714,13 @@ class CReflectometry:
         dependent_parameters = []
         independent_parameters = []
         parlist = []
+        joblist = []
+        jobmax =10
+
+        # fetch mode and cluster mode are exclusive
+        if bFetchMode and bClusterMode:
+            bClusterMode = False
+
         i = 0
         for row in allpar.itertuples():
             if row.type == 'i' or row.type == 'fi':
@@ -694,8 +772,8 @@ class CReflectometry:
             sqstd_KDN = numpy.zeros(results_KDN.shape)
             sqstd_MVN_marginal = numpy.zeros(results_MVN_marginal.shape)
             sqstd_KDN_marginal = numpy.zeros(results_KDN_marginal.shape)
-            par_median = numpy.zeros((len(parlist), results_MVN.shape[0], results_MVN.shape[1]))
-            par_std = numpy.zeros((len(parlist), results_MVN.shape[0], results_MVN.shape[1]))
+            par_median = numpy.zeros((len(parlist),)+results_MVN.shape)
+            par_std = numpy.zeros((len(parlist),)+results_MVN.shape)
 
         repeats = True
         #indicator whether every systematic variation has at least one result
@@ -730,7 +808,7 @@ class CReflectometry:
                     if fabs(dMVN-dKDN) > convergence:
                         outlier = True
 
-                if outlier or invalid_result or insufficient_iterations or (n_MVN[itindex]==0):
+                if outlier or invalid_result or insufficient_iterations or (n_MVN[itindex]==0) or bFetchMode:
 
                     repeats = True
                     # set up fit limits and simulation parameters including parameters that are varied and
@@ -740,6 +818,8 @@ class CReflectometry:
                     priorentropy_marginal = 0
                     qrange = 0
                     pre = 0
+                    bUnzippedPriorResult = path.isfile('iteration_'+str(iteration)+'/save/run-chain.mc')
+                    bPriorResultExists = bUnzippedPriorResult or path.isfile('iteration_'+str(iteration)+'.zip')
                     for row in allpar.itertuples():  # cycle through all parameters
                         if row.par in steppar['par'].tolist():
                             lsim = steppar.loc[steppar['par']==row.par, 'l_sim'].iloc[0]
@@ -764,7 +844,8 @@ class CReflectometry:
                                 pre = simvalue
                             else:
                                 simpar.loc[simpar['par'] == row.par, 'value'] = simvalue
-                                self.fnReplaceParameterLimitsInSetup(row.par, lowersim, uppersim)
+                                if not bPriorResultExists or not bFetchMode:
+                                    self.fnReplaceParameterLimitsInSetup(row.par, lowersim, uppersim)
                                 if 'rho' in row.par:
                                     priorentropy += log((uppersim-lowersim)*1e6)/log(2)
                                 else:
@@ -782,7 +863,8 @@ class CReflectometry:
                             elif row.par == 'prefactor':
                                 pre = row.value
                             else:
-                                self.fnReplaceParameterLimitsInSetup(row.par, row.l_fit, row.u_fit)
+                                if not bPriorResultExists or not bFetchMode:
+                                    self.fnReplaceParameterLimitsInSetup(row.par, row.l_fit, row.u_fit)
                                 if 'rho' in row.par:
                                     priorentropy += log((row.u_fit-row.l_fit)*1e6)/log(2)
                                 else:
@@ -794,126 +876,158 @@ class CReflectometry:
                                     else:
                                         priorentropy_marginal += log(row.u_fit - row.l_fit) / log(2)
 
-                    simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
-                    self.fnSimulateReflectivity(mode=mode, pre=pre, qrange=qrange)
+                    if (not bPriorResultExists and not bFetchMode) or (bClusterMode and bUnzippedPriorResult):
+                        # fetch mode and cluster mode are exclusive
+                        # there should be no unzipped results in cluster mode, as cluster mode performs only one single
+                        # iteration over the parameter space, because the entropy has to be calculated offsite
+                        # therefore, if an unzipped result is found, it is ignored
+                        simpar.to_csv('simpar.dat', sep=' ', header=None, index=False)
+                        self.fnSimulateReflectivity(mode=mode, pre=pre, qrange=qrange)
+                        joblist = runmcmc(iteration, mcmcburn, mcmcsteps, joblist, jobmax, bClusterMode, time=time)
+                        bPriorResultExists=True
 
-                    runmcmc(iteration, mcmcburn, mcmcsteps)
+                    # Entropy calculation
+                    # do not run entropy calculation when on cluster
+                    if not bClusterMode and bPriorResultExists:
 
-                    # Calculate Entropy 10 times and average
-                    mvn_entropy = []
-                    kdn_entropy = []
-                    mvn_entropy_marginal = []
-                    kdn_entropy_marginal = []
+                        # check if result directory is zipped. If yes, unzip.
+                        if path.isfile('iteration_'+str(iteration)+'.zip'):
+                            if not path.isfile('iteration_'+str(iteration)+'/save/run-chain.mc'):
+                                # if a zip file and unzipped file exists -> prefer the unzipped file
+                                File = zipfile.ZipFile('iteration_'+str(iteration)+'.zip', 'r')
+                                call(['mkdir', 'iteration_'+str(iteration)])
+                                File.extractall('iteration_'+str(iteration))
+                                File.close()
+                            call(['rm', 'iteration_' + str(iteration) + '.zip'])
 
-                    for j in range(5):  #was 10
-                        # calculate entropy
-                        a, b, c, d, e, f = entropy.process_fit(dirname='iteration_' + str(iteration),
-                                                         dependent_parameters=dependent_parameters,
-                                                         independent_parameters=independent_parameters)
-                        mvn_entropy.append(a)
-                        kdn_entropy.append(b)
-                        mvn_entropy_marginal.append(c)
-                        kdn_entropy_marginal.append(d)
+                        # Calculate Entropy n times and average
+                        mvn_entropy = []
+                        kdn_entropy = []
+                        mvn_entropy_marginal = []
+                        kdn_entropy_marginal = []
 
-                    # remove outliers and average calculated entropies
-                    avg_MVN, std_MVN = average(mvn_entropy)
-                    avg_KDN, std_KDN = average(kdn_entropy)
-                    avg_MVN_marginal, std_MVN_marginal = average(mvn_entropy_marginal)
-                    avg_KDN_marginal, std_KDN_marginal = average(kdn_entropy_marginal)
+                        for j in range(5):  #was 10
+                            # calculate entropy
+                            a, b, c, d, e, f = entropy.process_fit(dirname='iteration_' + str(iteration)+'/save',
+                                                             dependent_parameters=dependent_parameters,
+                                                             independent_parameters=independent_parameters)
+                            mvn_entropy.append(a)
+                            kdn_entropy.append(b)
+                            mvn_entropy_marginal.append(c)
+                            kdn_entropy_marginal.append(d)
 
-                    # don't average over parameter stats
-                    points_median = e
-                    points_std = f
+                        # remove outliers and average calculated entropies
+                        avg_MVN, std_MVN = average(mvn_entropy)
+                        avg_KDN, std_KDN = average(kdn_entropy)
+                        avg_MVN_marginal, std_MVN_marginal = average(mvn_entropy_marginal)
+                        avg_KDN_marginal, std_KDN_marginal = average(kdn_entropy_marginal)
 
-                    bValidResult = (std_KDN < convergence) and \
-                                   (priorentropy_marginal-avg_KDN_marginal > (-0.5) * len(dependent_parameters)) and \
-                                   (priorentropy - avg_KDN > (-0.5) * len(parlist))
+                        # don't average over parameter stats
+                        points_median = e
+                        points_std = f
 
-                    # no special treatment for first entry necessary, algorithm catches this
-                    if bValidResult:
-                        n_KDN[itindex] += 1.0
-                        n_MVN[itindex] += 1.0
-                        n_KDN_marginal[itindex] += 1.0
-                        n_MVN_marginal[itindex] += 1.0
-                        n = n_KDN[itindex]
+                        bValidResult = (std_KDN < convergence) and \
+                                       (priorentropy_marginal-avg_KDN_marginal > (-0.5) * len(dependent_parameters)) and \
+                                       (priorentropy - avg_KDN > (-0.5) * len(parlist))
 
-                        old_MVN = results_MVN[itindex]
-                        old_KDN = results_KDN[itindex]
-                        old_MVN_marginal = results_MVN_marginal[itindex]
-                        old_KDN_marginal = results_KDN_marginal[itindex]
+                        # no special treatment for first entry necessary, algorithm catches this
+                        if bValidResult:
+                            n_KDN[itindex] += 1.0
+                            n_MVN[itindex] += 1.0
+                            n_KDN_marginal[itindex] += 1.0
+                            n_MVN_marginal[itindex] += 1.0
+                            n = n_KDN[itindex]
 
-                        results_MVN[itindex] = running_mean(results_MVN[itindex], n, avg_MVN)
-                        results_KDN[itindex] = running_mean(results_KDN[itindex], n, avg_KDN)
-                        results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
-                        results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
-                        par_median[:, itindex[0], itindex[1]] = running_mean(par_median[:, itindex[0], itindex[1]], n,
-                                                                             points_median)
-                        # for par std the average is calculated, not a sqstd of par_median
-                        par_std[:, itindex[0], itindex[1]] = running_mean(par_std[:, itindex[0], itindex[1]], n,
-                                                                          points_std)
+                            old_MVN = results_MVN[itindex]
+                            old_KDN = results_KDN[itindex]
+                            old_MVN_marginal = results_MVN_marginal[itindex]
+                            old_KDN_marginal = results_KDN_marginal[itindex]
 
-                        sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
-                        sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
-                        sqstd_MVN_marginal[itindex] = running_sqstd(sqstd_MVN_marginal[itindex], n, avg_MVN_marginal,
-                                                                    old_MVN_marginal, results_MVN_marginal[itindex])
-                        sqstd_KDN_marginal[itindex] = running_sqstd(sqstd_KDN_marginal[itindex], n, avg_KDN_marginal,
-                                                                    old_KDN_marginal, results_KDN_marginal[itindex])
+                            results_MVN[itindex] = running_mean(results_MVN[itindex], n, avg_MVN)
+                            results_KDN[itindex] = running_mean(results_KDN[itindex], n, avg_KDN)
+                            results_MVN_marginal[itindex] = running_mean(results_MVN_marginal[itindex], n, avg_MVN_marginal)
+                            results_KDN_marginal[itindex] = running_mean(results_KDN_marginal[itindex], n, avg_KDN_marginal)
+                            for i in range(par_median.shape[0]):
+                                par_median[(i,)+itindex] = running_mean(par_median[(i,)+itindex], n, points_median[i])
+                                # for par std the average is calculated, not a sqstd of par_median
+                                par_std[(i,)+itindex] = running_mean(par_std[(i,)+itindex], n, points_std[i])
 
-                    #save results every iteration
-                    numpy.save('KDN_entropy', results_KDN, allow_pickle=False)
-                    numpy.save('MVN_entropy', results_MVN, allow_pickle=False)
-                    numpy.save('KDN_entropy_marginal', results_KDN_marginal, allow_pickle=False)
-                    numpy.save('MVN_entropy_marginal', results_MVN_marginal, allow_pickle=False)
-                    numpy.save('KDN_infocontent', priorentropy - results_KDN, allow_pickle=False)
-                    numpy.save('MVN_infocontent', priorentropy - results_MVN, allow_pickle=False)
-                    numpy.save('KDN_infocontent_marginal', priorentropy_marginal - results_KDN_marginal, allow_pickle=False)
-                    numpy.save('MVN_infocontent_marginal', priorentropy_marginal - results_MVN_marginal, allow_pickle=False)
-                    numpy.save('KDN_sqstd', sqstd_KDN, allow_pickle=False)
-                    numpy.save('MVN_sqstd', sqstd_MVN, allow_pickle=False)
-                    numpy.save('KDN_sqstd_marginal', sqstd_KDN_marginal, allow_pickle=False)
-                    numpy.save('MVN_sqstd_marginal', sqstd_MVN_marginal, allow_pickle=False)
-                    numpy.save('KDN_n', n_KDN, allow_pickle=False)
-                    numpy.save('MVN_n', n_MVN, allow_pickle=False)
-                    numpy.save('KDN_n_marginal', n_KDN_marginal, allow_pickle=False)
-                    numpy.save('MVN_n_marginal', n_MVN_marginal, allow_pickle=False)
-                    numpy.save('par_median', par_median, allow_pickle=False)
-                    numpy.save('par_std', par_std, allow_pickle=False)
+                            sqstd_MVN[itindex] = running_sqstd(sqstd_MVN[itindex], n, avg_MVN, old_MVN, results_MVN[itindex])
+                            sqstd_KDN[itindex] = running_sqstd(sqstd_KDN[itindex], n, avg_KDN, old_KDN, results_KDN[itindex])
+                            sqstd_MVN_marginal[itindex] = running_sqstd(sqstd_MVN_marginal[itindex], n, avg_MVN_marginal,
+                                                                        old_MVN_marginal, results_MVN_marginal[itindex])
+                            sqstd_KDN_marginal[itindex] = running_sqstd(sqstd_KDN_marginal[itindex], n, avg_KDN_marginal,
+                                                                        old_KDN_marginal, results_KDN_marginal[itindex])
 
-                    if deldir:
-                        call(['rm', 'iteration_'+str(iteration)+'/run-point.mc'])
-                        call(['rm', 'iteration_'+str(iteration)+'/run-chain.mc'])
-                        call(['rm', 'iteration_'+str(iteration)+'/run-stats.mc'])
+                        #save results every iteration
+                        numpy.save('KDN_entropy', results_KDN, allow_pickle=False)
+                        numpy.save('MVN_entropy', results_MVN, allow_pickle=False)
+                        numpy.save('KDN_entropy_marginal', results_KDN_marginal, allow_pickle=False)
+                        numpy.save('MVN_entropy_marginal', results_MVN_marginal, allow_pickle=False)
+                        numpy.save('KDN_infocontent', priorentropy - results_KDN, allow_pickle=False)
+                        numpy.save('MVN_infocontent', priorentropy - results_MVN, allow_pickle=False)
+                        numpy.save('KDN_infocontent_marginal', priorentropy_marginal - results_KDN_marginal, allow_pickle=False)
+                        numpy.save('MVN_infocontent_marginal', priorentropy_marginal - results_MVN_marginal, allow_pickle=False)
+                        numpy.save('KDN_sqstd', sqstd_KDN, allow_pickle=False)
+                        numpy.save('MVN_sqstd', sqstd_MVN, allow_pickle=False)
+                        numpy.save('KDN_sqstd_marginal', sqstd_KDN_marginal, allow_pickle=False)
+                        numpy.save('MVN_sqstd_marginal', sqstd_MVN_marginal, allow_pickle=False)
+                        numpy.save('KDN_n', n_KDN, allow_pickle=False)
+                        numpy.save('MVN_n', n_MVN, allow_pickle=False)
+                        numpy.save('KDN_n_marginal', n_KDN_marginal, allow_pickle=False)
+                        numpy.save('MVN_n_marginal', n_MVN_marginal, allow_pickle=False)
+                        numpy.save('par_median', par_median, allow_pickle=False)
+                        numpy.save('par_std', par_std, allow_pickle=False)
 
-                    # save to txt when not more than two-dimensional array
-                    if len(steplist) <= 2:
-                        numpy.savetxt('MVN_entropy.txt', results_MVN)
-                        numpy.savetxt('KDN_entropy.txt', results_KDN)
-                        numpy.savetxt('MVN_entropy_marginal.txt', results_MVN_marginal)
-                        numpy.savetxt('KDN_entropy_marginal.txt', results_KDN_marginal)
-                        numpy.savetxt('MVN_infocontent.txt', priorentropy - results_MVN)
-                        numpy.savetxt('KDN_infocontent.txt', priorentropy - results_KDN)
-                        numpy.savetxt('MVN_infocontent_marginal.txt', priorentropy_marginal - results_MVN_marginal)
-                        numpy.savetxt('KDN_infocontent_marginal.txt', priorentropy_marginal - results_KDN_marginal)
-                        numpy.savetxt('MVN_sqstd.txt', sqstd_MVN)
-                        numpy.savetxt('KDN_sqstd.txt', sqstd_KDN)
-                        numpy.savetxt('MVN_sqstd_marginal.txt', sqstd_MVN_marginal)
-                        numpy.savetxt('KDN_sqstd_marginal.txt', sqstd_KDN_marginal)
-                        numpy.savetxt('MVN_n.txt', n_MVN)
-                        numpy.savetxt('KDN_n.txt', n_KDN)
-                        numpy.savetxt('MVN_n_marginal.txt', n_MVN_marginal)
-                        numpy.savetxt('KDN_n_marginal.txt', n_KDN_marginal)
-                        i=0
-                        for parname in parlist:
-                            numpy.savetxt('Par_'+parname+'_median.txt', par_median[i])
-                            numpy.savetxt('Par_'+parname+'_std.txt', par_std[i])
-                            i += 1
+                        if deldir:
+                            call(['rm', 'iteration_'+str(iteration)+'/save/run-point.mc'])
+                            call(['rm', 'iteration_'+str(iteration)+'/save/run-chain.mc'])
+                            call(['rm', 'iteration_'+str(iteration)+'/save/run-stats.mc'])
+
+                        # save to txt when not more than two-dimensional array
+                        if len(steplist) <= 2:
+                            numpy.savetxt('MVN_entropy.txt', results_MVN)
+                            numpy.savetxt('KDN_entropy.txt', results_KDN)
+                            numpy.savetxt('MVN_entropy_marginal.txt', results_MVN_marginal)
+                            numpy.savetxt('KDN_entropy_marginal.txt', results_KDN_marginal)
+                            numpy.savetxt('MVN_infocontent.txt', priorentropy - results_MVN)
+                            numpy.savetxt('KDN_infocontent.txt', priorentropy - results_KDN)
+                            numpy.savetxt('MVN_infocontent_marginal.txt', priorentropy_marginal - results_MVN_marginal)
+                            numpy.savetxt('KDN_infocontent_marginal.txt', priorentropy_marginal - results_KDN_marginal)
+                            numpy.savetxt('MVN_sqstd.txt', sqstd_MVN)
+                            numpy.savetxt('KDN_sqstd.txt', sqstd_KDN)
+                            numpy.savetxt('MVN_sqstd_marginal.txt', sqstd_MVN_marginal)
+                            numpy.savetxt('KDN_sqstd_marginal.txt', sqstd_KDN_marginal)
+                            numpy.savetxt('MVN_n.txt', n_MVN)
+                            numpy.savetxt('KDN_n.txt', n_KDN)
+                            numpy.savetxt('MVN_n_marginal.txt', n_MVN_marginal)
+                            numpy.savetxt('KDN_n_marginal.txt', n_KDN_marginal)
+                            i=0
+                            for parname in parlist:
+                                numpy.savetxt('Par_'+parname+'_median.txt', par_median[i])
+                                numpy.savetxt('Par_'+parname+'_std.txt', par_std[i])
+                                i += 1
 
                 iteration += 1
                 it.iternext()
 
-            if (not repeats) and (not no_zeros):
+            # Repeats is False while no_zeros is False means that the algorithm went over all iterations but has not
+            # found one with an insufficient number of results or invalid results. This means now, one can check for
+            # outliers and improve the statistics.
+            if repeats is False and no_zeros is False:
                 repeats = True
-                no_zeroes = True
+                no_zeros = True
+
+            # Never repeat iterations in cluster or when just calculating entropies
+            if bClusterMode or bFetchMode:
+                repeats = False
+
+        # wait for all jobs to finish
+        if bClusterMode:
+            while joblist:
+                joblist = waitforjob(joblist, jobmax, bFinish=True)
+
+
 
     #-------------------------------------------------------------------------------
 
@@ -1920,7 +2034,8 @@ class CReflectometry:
 
             #-------------------------------------------------------------------------------
 
-    def fnLoadParameters(self, sPath='./'):  #loads the last row's parameters, and
+    def fnLoadParameters(self, sPath='./'):
+        #loads the last row's parameters, and
         #ranges from par.dat and stores them into
         #self.diParameters; parameter names are
         #read from setup.c, since par.dat truncates
@@ -2070,12 +2185,12 @@ class CReflectometry:
 
     #-------------------------------------------------------------------------------
 
-    def fnMake(self):
+    def fnMake(self, dirname='.'):
     #make setup.c and print sys output
-        call(["rm", "-f", "setup.o"])
+        call(["rm", "-f", dirname+"/setup.o"])
         call(["sync"])  #synchronize file system
         sleep(1)  #wait for system to clean up
-        call(["make"])
+        call(['make', '-C', dirname])
 
         #-------------------------------------------------------------------------------
 
@@ -4224,6 +4339,9 @@ if __name__ == '__main__':
                 convergence =2.0
                 miniter = 1
                 mode = 'water'
+                bClusterMode = False
+                bFetchMode = False
+                time =2
                 while i < len(argv):
                     if argv[i] == '-burn':
                         burn = int(argv[i+1])
@@ -4240,8 +4358,17 @@ if __name__ == '__main__':
                     elif argv[i] == '-mode':
                         mode = argv[i+1]
                         i += 2
+                    elif argv[i] == '-cluster':
+                        bClusterMode = True
+                        i += 1
+                    elif argv[i] == '-fetch':
+                        bFetchMode = True
+                        i += 1
+                    elif argv[i] == '-time':
+                        time = int(argv[i+1])
+                        i += 2
                 ReflPar.fnCalculateEntropy(mcmcburn=burn, mcmcsteps=steps, convergence=convergence, miniter=miniter,
-                                           mode=mode)
+                                           mode=mode, bClusterMode=bClusterMode, bFetchMode=bFetchMode, time=time)
                 break
             elif argv[i] == '-f':
                 if len(argv) > i + 1:
