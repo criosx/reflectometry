@@ -1,358 +1,0 @@
-TProteinSlicer
-v6
-r1
-cCheck dependencies
-cCompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.o /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c normal x86_64 c com.apple.compilers.llvm.clang.1_0.compiler
-cLd /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer normal x86_64
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk
-c000000005282722D00000000000000AA
-t1384280621
-s170
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/SDKSettings.plist
-c000000005267CF3B000000000000044C
-t1382534971
-s1100
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/CoreServices/SystemVersion.plist
-c000000005267CF3B00000000000001DB
-t1382534971
-s475
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libSystem.dylib
-c000000005267CF4B000000000000681C
-t1382534987
-s26652
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcache.dylib
-c000000005267CF4B0000000000004734
-t1382534987
-s18228
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcommonCrypto.dylib
-c000000005267CF4B000000000000FC6C
-t1382534987
-s64620
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcompiler_rt.dylib
-c000000005267CF4B000000000000F6A0
-t1382534987
-s63136
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcopyfile.dylib
-c000000005267CF4B0000000000006254
-t1382534987
-s25172
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcorecrypto.dylib
-c000000005267CF4B000000000000E0F8
-t1382534987
-s57592
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libdispatch.dylib
-c000000005267CF4B000000000000D6DC
-t1382534987
-s55004
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libdyld.dylib
-c000000005267CF4B0000000000006308
-t1382534987
-s25352
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libkeymgr.dylib
-c000000005267CF4B0000000000004050
-t1382534987
-s16464
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/liblaunch.dylib
-c000000005267CF4B0000000000008570
-t1382534987
-s34160
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libmacho.dylib
-c000000005267CF4B0000000000005EA0
-t1382534987
-s24224
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libquarantine.dylib
-c000000005267CF4B0000000000005FAC
-t1382534987
-s24492
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libremovefile.dylib
-c000000005267CF4B0000000000004440
-t1382534987
-s17472
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_asl.dylib
-c000000005267CF4B000000000000AA28
-t1382534987
-s43560
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_blocks.dylib
-c000000005267CF4B0000000000003E2C
-t1382534987
-s15916
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_c.dylib
-c000000005267CF4B0000000000030A24
-t1382534987
-s199204
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_configuration.dylib
-c000000005267CF4B0000000000005E54
-t1382534987
-s24148
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_dnssd.dylib
-c000000005267CF4B0000000000006A90
-t1382534987
-s27280
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_info.dylib
-c000000005267CF4B00000000000178AC
-t1382534987
-s96428
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_kernel.dylib
-c000000005267CF4B000000000001ADC8
-t1382534987
-s110024
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_m.dylib
-c000000005267CF4B000000000001028C
-t1382534987
-s66188
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_malloc.dylib
-c000000005267CF4B0000000000008800
-t1382534987
-s34816
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_network.dylib
-c000000005267CF4B0000000000011090
-t1382534987
-s69776
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_notify.dylib
-c000000005267CF4B000000000000882C
-t1382534987
-s34860
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_platform.dylib
-c000000005267CF4B00000000000067AC
-t1382534987
-s26540
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_pthread.dylib
-c000000005267CF4B0000000000008DEC
-t1382534987
-s36332
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_sandbox.dylib
-c000000005267CF4B0000000000004C08
-t1382534987
-s19464
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_stats.dylib
-c000000005267CF4B00000000000023C0
-t1382534987
-s9152
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libunc.dylib
-c000000005267CF4B000000000000439C
-t1382534987
-s17308
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libunwind.dylib
-c000000005267CF4B0000000000006768
-t1382534987
-s26472
-
-N/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libxpc.dylib
-c000000005267CF4B00000000000172F4
-t1382534987
-s94964
-
-N/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/5.0/lib/darwin/libclang_rt.osx.a
-c000000005267CF890000000000001750
-t1382535049
-s5968
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/ProteinSlicer.LinkFileList
-c0000000051B60F9F00000000000000B5
-t1370886047
-s181
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/main.o
-t1370892561
-s54112
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/ProteinSlicer.LinkFileList
-c0000000052B0836E00000000000000B7
-t1387299694
-s183
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.o
-t1387300471
-s54336
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer
-t1387300224
-s45436
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c
-c0000000052B085D40000000000009564
-t1387300308
-s38244
-i<stdlib.h>
-i<stdio.h>
-i<string.h>
-i<math.h>
-i"main.h"
-
-N/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h
-c0000000052B0863800000000000066CB
-t1387300408
-s26315
-
-N/usr/include/math.h
-c0000000050A55CFB00000000000066C2
-t1353014523
-s26306
-
-N/usr/include/stdio.h
-c0000000050A55CF30000000000004523
-t1353014515
-s17699
-
-N/usr/include/stdlib.h
-c0000000050A55CF30000000000003089
-t1353014515
-s12425
-
-N/usr/include/string.h
-c0000000050A55CF30000000000001A3A
-t1353014515
-s6714
-
-CBuild AST from /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c
-r0
-
-CCheck dependencies
-r0
-lSLF06#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection18"Check dependencies18"Check dependencies33a519f7bd60b841^1c7b1ef7bd60b841^---0#1#1#--18"Check dependencies36"1942A027-B11E-4457-B495-E6E19261365E-
-
-CCompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/main.o /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler
-s392585361.174373
-e392585361.229546
-r1
-xCompileC
-xDerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/main.o
-x/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c
-xnormal
-xi386
-xc
-xcom.apple.compilers.llvm.clang.1_0.compiler
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:91:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]
-o        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])==0))   //look for match in table
-o                                                                                 ^~~~~~~~~~~~~~~~~~~~
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:960:39: note: passing argument to parameter 'cTableEntry' here
-oint  strcpprot(char *cAtomName, char *cTableEntry);
-o                                      ^
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:246:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]
-o        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])== 0))   //look for match in table
-o                                                                                 ^~~~~~~~~~~~~~~~~~~~
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:960:39: note: passing argument to parameter 'cTableEntry' here
-oint  strcpprot(char *cAtomName, char *cTableEntry);
-o                                      ^
-o2 warnings generated.
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection72"Compile /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c6fb72c916066b741^f0c23a916066b741^-1314"/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:91:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])==0))   //look for match in table                                                                                 ^~~~~~~~~~~~~~~~~~~~/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:960:39: note: passing argument to parameter 'cTableEntry' hereint  strcpprot(char *cAtomName, char *cTableEntry);                                      ^/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:246:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types]        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])== 0))   //look for match in table                                                                                 ^~~~~~~~~~~~~~~~~~~~/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:960:39: note: passing argument to parameter 'cTableEntry' hereint  strcpprot(char *cAtomName, char *cTableEntry);                                      ^2 warnings generated.2(36%IDEClangDiagnosticActivityLogMessage2@74"Passing 'const char [6]' to parameter of type 'char *' discards qualifiers-392585361#18446744073709551615#0#1(2@48"Passing argument to parameter 'cTableEntry' here-392585361#18446744073709551615#0#-0#27"com.apple.dt.IDE.diagnostic23%DVTTextDocumentLocation3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h0000000000000000^959#38#959#38#26022#0#14"Semantic Issue--1#27"com.apple.dt.IDE.diagnostic3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^90#81#90#81#3801#0#14"Semantic Issue1(3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^90#81#90#101#3801#19#-2@74"Passing 'const char [6]' to parameter of type 'char *' discards qualifiers-392585361#18446744073709551615#0#1(2@48"Passing argument to parameter 'cTableEntry' here-392585361#18446744073709551615#0#-0#27"com.apple.dt.IDE.diagnostic3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h0000000000000000^959#38#959#38#26022#0#14"Semantic Issue--1#27"com.apple.dt.IDE.diagnostic3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^245#81#245#81#10393#0#14"Semantic Issue1(3@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^245#81#245#101#10393#19#-0#0#0#-19%DVTDocumentLocation4@80"file://localhost/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^2706"CompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/main.o main.c normal i386 c com.apple.compilers.llvm.clang.1_0.compiler    cd /Users/frank/Documents/programming/ProteinSlicer/Combined    setenv LANG en_US.US-ASCII    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -arch i386 -fmessage-length=0 -Wno-trigraphs -fpascal-strings -O0 -Wno-missing-field-initializers -Wno-missing-prototypes -Wreturn-type -Wformat -Wno-missing-braces -Wparentheses -Wswitch -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wno-empty-body -Wno-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wno-constant-conversion -Wno-int-conversion -Wno-enum-conversion -Wno-shorten-64-to-32 -Wpointer-sign -Wno-newline-eof -fasm-blocks -fstrict-aliasing -Wdeprecated-declarations -g -fvisibility=hidden -Wno-sign-conversion -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/ProteinSlicer.hmap -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/DerivedSources/i386 -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/DerivedSources -F/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development -MMD -MT dependencies -MF /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/main.d --serialize-diagnostics /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/main.dia -c /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c -o /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/main.o36"8EA966FD-924D-4F79-B80B-C7C6BA03F5FC-
-
-CCompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.o /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c normal x86_64 c com.apple.compilers.llvm.clang.1_0.compiler
-s408993271.119494
-e408993271.178229
-r1
-xCompileC
-xDerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.o
-x/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c
-xnormal
-xx86_64
-xc
-xcom.apple.compilers.llvm.clang.1_0.compiler
-d/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c
-d/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:91:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
-o        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])==0))   //look for match in table
-o                                                                                 ^~~~~~~~~~~~~~~~~~~~
-oIn file included from /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:5:
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:964:39: note: passing argument to parameter 'cTableEntry' here
-oint  strcpprot(char *cAtomName, char *cTableEntry);
-o                                      ^
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:246:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
-o        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])== 0))   //look for match in table
-o                                                                                 ^~~~~~~~~~~~~~~~~~~~
-oIn file included from /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:5:
-o/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:964:39: note: passing argument to parameter 'cTableEntry' here
-oint  strcpprot(char *cAtomName, char *cTableEntry);
-o                                      ^
-o2 warnings generated.
-lSLF06#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection72"Compile /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c200"CompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.o main.c normal x86_64 c com.apple.compilers.llvm.clang.1_0.compilerb5a51ef7bd60b841^f59f2df7bd60b841^-1534"/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:91:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])==0))   //look for match in table                                                                                 ^~~~~~~~~~~~~~~~~~~~In file included from /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:5:/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:964:39: note: passing argument to parameter 'cTableEntry' hereint  strcpprot(char *cAtomName, char *cTableEntry);                                      ^/Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:246:82: warning: passing 'const char [6]' to parameter of type 'char *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]        if ((strcmp(cResidue,cAtomNameTable[i][0]) == 0) && (strcpprot(cAtomName,cAtomNameTable[i][1])== 0))   //look for match in table                                                                                 ^~~~~~~~~~~~~~~~~~~~In file included from /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c:5:/Users/frank/Documents/programming/ProteinSlicer/Combined/main.h:964:39: note: passing argument to parameter 'cTableEntry' hereint  strcpprot(char *cAtomName, char *cTableEntry);                                      ^2 warnings generated.2(36%IDEClangDiagnosticActivityLogMessage2@74"Passing 'const char [6]' to parameter of type 'char *' discards qualifiers-408993271#18446744073709551615#0#1(2@48"Passing argument to parameter 'cTableEntry' here-408993271#18446744073709551615#0#-0#27"com.apple.dt.IDE.diagnostic23%DVTTextDocumentLocation3@71"file:///Users/frank/Documents/programming/ProteinSlicer/Combined/main.h0000000000000000^963#38#963#38#26110#0#14"Semantic Issue--1#27"com.apple.dt.IDE.diagnostic3@71"file:///Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^90#81#90#81#3801#0#14"Semantic Issue1(3@71"file:///Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^90#81#90#101#3801#19#-2@74"Passing 'const char [6]' to parameter of type 'char *' discards qualifiers-408993271#18446744073709551615#0#1(2@48"Passing argument to parameter 'cTableEntry' here-408993271#18446744073709551615#0#-0#27"com.apple.dt.IDE.diagnostic3@71"file:///Users/frank/Documents/programming/ProteinSlicer/Combined/main.h0000000000000000^963#38#963#38#26110#0#14"Semantic Issue--1#27"com.apple.dt.IDE.diagnostic3@71"file:///Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^245#81#245#81#10393#0#14"Semantic Issue1(3@71"file:///Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^245#81#245#101#10393#19#-0#0#1#-19%DVTDocumentLocation4@71"file:///Users/frank/Documents/programming/ProteinSlicer/Combined/main.c0000000000000000^2731"CompileC DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.o main.c normal x86_64 c com.apple.compilers.llvm.clang.1_0.compiler    cd /Users/frank/Documents/programming/ProteinSlicer/Combined    setenv LANG en_US.US-ASCII    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -arch x86_64 -fmessage-length=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0 -Wno-trigraphs -fpascal-strings -O0 -Wno-missing-field-initializers -Wno-missing-prototypes -Wno-missing-braces -Wparentheses -Wswitch -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wno-empty-body -Wno-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wno-constant-conversion -Wno-int-conversion -Wno-bool-conversion -Wno-enum-conversion -Wno-shorten-64-to-32 -Wpointer-sign -Wno-newline-eof -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -fasm-blocks -fstrict-aliasing -Wdeprecated-declarations -mmacosx-version-min=10.9 -g -fvisibility=hidden -Wno-sign-conversion -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/ProteinSlicer.hmap -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/DerivedSources/x86_64 -I/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/DerivedSources -F/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development -MMD -MT dependencies -MF /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.d --serialize-diagnostics /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.dia -c /Users/frank/Documents/programming/ProteinSlicer/Combined/main.c -o /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.o36"9D918E4D-0832-4DAC-9EBF-52AD398672D2-
-b0DF9AA9C-691E-4834-AE1D-0D7BAA5F3BC7
-
-CLd /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer normal i386
-s392585361.236691
-e392585361.262733
-r1
-xLd
-x/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer
-xnormal
-xi386
-lSLF05#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection128"Link /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer6aa43d916066b741^354243916066b741^---0#0#0#--816"Ld DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer normal i386    cd /Users/frank/Documents/programming/ProteinSlicer/Combined    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -arch i386 -L/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development -F/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development -filelist /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/i386/ProteinSlicer.LinkFileList -o /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer36"3A70F92D-0C72-448B-90F5-60AA4C2D8894-
-
-CLd /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer normal x86_64
-s408993271.179420
-e408993271.214629
-r1
-xLd
-x/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer
-xnormal
-xx86_64
-d/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/ProteinSlicer.LinkFileList
-d/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/main.o
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libSystem.dylib
-d/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/5.0/lib/darwin/libclang_rt.osx.a
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcache.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcommonCrypto.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcompiler_rt.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcopyfile.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libcorecrypto.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libdispatch.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libdyld.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libkeymgr.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/liblaunch.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libmacho.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libquarantine.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libremovefile.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_asl.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_blocks.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_c.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_configuration.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_dnssd.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_info.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_kernel.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_m.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_malloc.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_network.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_notify.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_platform.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_pthread.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_sandbox.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libsystem_stats.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libunc.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libunwind.dylib
-d/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/system/libxpc.dylib
-lSLF06#21%IDEActivityLogSection1@2#32"com.apple.dt.IDE.BuildLogSection128"Link /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer82"Ld DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer normal x86_641efb2df7bd60b841^73f236f7bd60b841^---0#0#1#--1243"Ld DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer normal x86_64    cd /Users/frank/Documents/programming/ProteinSlicer/Combined    setenv MACOSX_DEPLOYMENT_TARGET 10.9    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -arch x86_64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -L/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development -F/Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development -filelist /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/ProteinSlicer.LinkFileList -mmacosx-version-min=10.9 -Xlinker -dependency_info -Xlinker /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Intermediates/VolumeSlicer.build/Development/ProteinSlicer.build/Objects-normal/x86_64/ProteinSlicer_dependency_info.dat -o /Users/frank/Documents/programming/ProteinSlicer/Combined/DerivedData/VolumeSlicer/Build/Products/Development/ProteinSlicer36"914BE07E-DE6D-487C-B2A7-5BD7B62BB5F4-
-b0DF9AA9C-691E-4834-AE1D-0D7BAA5F3BC7
-

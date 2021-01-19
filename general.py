@@ -83,7 +83,7 @@ def fnLoadSingleColumns(sFileName, data={}, exceptions=[], header=True, headerli
         splitheaderline=headerline
 
     for i,columnname in enumerate(splitheaderline):
-        if LoadList==[] or (columname in LoadList):
+        if LoadList==[] or (columnname in LoadList):
             data[columnname]=[]
 
     for line in content:
@@ -172,7 +172,7 @@ def fnSaveSingleColumns(sFilename, data):
         file.write(element+" ")
     file.write("\n")
 
-    for i in range(len(data[data.keys()[0]])):
+    for i in range(len(data[list(data)[0]])):
         for element in data:
             file.write(str(data[element][i])+" ")
         file.write("\n")
@@ -181,7 +181,7 @@ def fnSaveSingleColumns(sFilename, data):
 
 def fnStat(data,referenceaxis):
 
-    statdata={referenceaxis : [], 'msigma' : [], 'median' : [], 'psigma' : []}
+    statdata = {referenceaxis: [], 'msigma': [], 'median': [], 'psigma': []}
 
     for i in range(len(data[referenceaxis])):
         dl=[]
@@ -230,7 +230,7 @@ def fnASKS():                                                                   
         result.append([])
         result[-1].append(dataset[0])                                           #append file name first
 
-        print dataset[0]
+        print(dataset[0])
 
         result[-1].append(numpy.average(data[0][1],weights=dataset[1]))         #average column over z-axis data[0][1]
         result[-1].append(fnWeightedSdv(data[0][1],dataset[1]))
@@ -372,10 +372,10 @@ def DecomposeRotMatrix(_f1,_f2,OldAlphaOrigin, OldBetaOrigin, OldGammaOrigin):
         ResultCounter+=1;
 
     if ResultCounter==0:
-        print 'This is not good. -- no results'
+        print('This is not good. -- no results')
         print('_f1 %e _f2 %e OldBetaOrigin %e OldGammaOrigin %e RotProduct',_f1, _f2,OldBetaOrigin, OldGammaOrigin, RotProduct)
     if ResultCounter>1:
-        print 'This is not good. -- more than one result'
+        print('This is not good. -- more than one result')
         print('_f1 %e _f2 %e OldBetaOrigin %e OldGammaOrigin %e RotProduct',_f1, _f2,OldBetaOrigin, OldGammaOrigin, RotProduct)
 
 
@@ -439,10 +439,10 @@ def fnBin2D(filename,list1,list2,start1,stop1,step1,start2,stop2,step2,Polar=Fal
             fAngCorr=1
             if Deg==True:
                 fAngCorr=2*numpy.pi/360
-            n1=int((f1*numpy.cos(f2*fAngCorr))/step1+0.5)+int((90.)/step1)
-            n2=int((f1*numpy.sin(f2*fAngCorr))/step1+0.5)+int((90.)/step1)
+            n1=int((f1*numpy.cos(f2*fAngCorr)+90.)/step1+0.5)
+            n2=int((f1*numpy.sin(f2*fAngCorr)+90.)/step1+0.5)
 
-        #print(list1[i], list2[i], f1,f2,n1,n2)
+        print(list1[i], list2[i], f1,f2,n1,n2)
 
 
         if Polar==True and bNegativeBeta==True:
@@ -577,7 +577,7 @@ def fnConvolute(fSigma=2.5):
             data=fnLoadSingleColumns(filename,data,exceptionloading)
 
             #print data.keys()
-            print filename
+            print(filename)
 
             lGaussian=[]
 
@@ -613,7 +613,7 @@ def fnConvoluteSingle(filename='',fSigma=2.5):
     data=fnLoadSingleColumns(filename,data,exceptionloading)
 
     #print data.keys()
-    print filename
+    print(filename)
 
     lGaussian=[]
 
@@ -921,13 +921,13 @@ def fnPeakAdjust(iNumberOfPeaks=1):
     data=fnLoadSingleColumns("sErr.dat",data,exceptionloading)
 
     keys=data.keys()
-    print keys
+    print(keys)
     for i in range(len(data[keys[0]])):
 
         j=1
         while 1:
             if 'vf_on'+str(j) in keys:
-                print '%(st)s ' % {'st':data['vf_on'+str(j)][i]}
+                print('%(st)s ' % {'st':data['vf_on'+str(j)][i]})
                 j+=1
             else:
                 print('TO ')
@@ -947,7 +947,7 @@ def fnPeakAdjust(iNumberOfPeaks=1):
         j=1
         while 1:
             if 'vf_on'+str(j) in keys:
-                print '%(st)s ' % {'st':data['vf_on'+str(j)][i]}
+                print('%(st)s ' % {'st':data['vf_on'+str(j)][i]})
                 j+=1
             else:
                 print('\n')

@@ -2967,14 +2967,14 @@ tBLM_quaternary_chol::tBLM_quaternary_chol(){
 	substrate  = new Box2Err();
 	bME        = new Box2Err();
 	tether	   = new Box2Err();
-	tetherg    = new	Box2Err();
-	headgroup1 = new	PCm();                                                    //mirrored PC head group
-	lipid1     = new	Box2Err();
-	methyl1    = new	Box2Err();
-	methyl2	   = new	Box2Err();
+	tetherg    = new Box2Err();
+	headgroup1 = new PCm();                                                    //mirrored PC head group
+	lipid1     = new Box2Err();
+	methyl1    = new Box2Err();
+	methyl2	   = new Box2Err();
 	lipid2	   = new Box2Err();
 	headgroup2 = new PC();                                                          //PC head group
-	headgroup1_2=  new Box2Err();                                                  //second headgroups
+	headgroup1_2 = new Box2Err();                                                  //second headgroups
 	headgroup2_2 = new Box2Err();
 	headgroup1_3 = new Box2Err();
 	headgroup2_3 = new Box2Err();
@@ -3426,7 +3426,6 @@ void tBLM_quaternary_chol::fnSet(double _sigma, double _global_rough, double _rh
     //printf("Exit fnSet \n");
 }
 
-
 void tBLM_quaternary_chol::fnSetSigma(double sigma)
 {
     // set all sigma
@@ -3488,6 +3487,305 @@ void tBLM_quaternary_chol::fnWritePar2File(FILE *fp, const char *cName, int dime
     
     //delete []str;
     
+}
+
+//------------------------------------------------------------------------------------------------------
+// Lipid bilayer with independent leaflet composition for inner and outer lipid leaflet
+//------------------------------------------------------------------------------------------------------
+
+tBLM_quaternary_chol_2leaflet::tBLM_quaternary_chol_2leaflet(){
+        
+    nf_lipid_2_inner = 0.;                               //for preparing towards a general bilayer class
+    nf_lipid_3_inner = 0.;
+    nf_chol_inner = 0;
+    
+    fnAdjustParameters();
+};
+
+
+void tBLM_quaternary_chol_2leaflet::fnAdjustParameters(){
+    
+    double l_ohc;
+    double V_ohc;
+    double nf_ohc_lipid, nf_ohc_lipid_2, nf_ohc_lipid_3, nf_ohc_chol, nSL_ohc;
+    double c_s_ohc, c_A_ohc, c_V_ohc;
+    
+    double l_om;
+    double V_om;
+    double nf_om_lipid, nf_om_lipid_2, nf_om_lipid_3, nSL_om;
+    double c_s_om, c_A_om, c_V_om;
+    
+    double l_ihc;
+    double V_ihc;
+    double nf_ihc_lipid, nf_ihc_lipid_2, nf_ihc_lipid_3, nf_ihc_chol, nf_ihc_tether, nSL_ihc;
+    double c_s_ihc, c_A_ihc, c_V_ihc;
+    
+    double l_im;
+    double V_im;
+    double nf_im_lipid, nf_im_lipid_2, nf_im_lipid_3, nf_im_tether, nSL_im;
+    double c_s_im, c_A_im, c_V_im;
+    
+    double V_tg;
+    double c_s_tg, c_A_tg, c_V_tg;
+    
+    double l_EO,V_EO;
+    double c_s_EO, c_A_EO, c_V_EO;
+    
+    double l_bME,V_bME;
+    
+    double d1, defectarea, defectratio, hclength, hglength;
+    double volhalftorus, volcylinder;
+    
+    //printf("Enter AdjustParameters \n");
+    
+    fnSetSigma(sigma);
+    
+    if (l_lipid1<=0) {l_lipid1=0.01;}
+    if (l_lipid2<=0) {l_lipid2=0.01;}
+    if (l_tether<=0) {l_tether=0.01;}
+    if (nf_lipid_2<0) {nf_lipid_2=0;}
+    if (nf_lipid_3<0) {nf_lipid_3=0;}
+    if (nf_chol<0) {nf_chol=0;}
+    if ((nf_lipid_2+nf_lipid_3+nf_chol)>1) {
+        nf_lipid_2=nf_lipid_2/(nf_lipid_2+nf_lipid_3+nf_chol);
+        nf_lipid_3=nf_lipid_3/(nf_lipid_2+nf_lipid_3+nf_chol);
+        nf_chol=nf_chol/(nf_lipid_2+nf_lipid_3+nf_chol);
+    }
+    if (vf_bilayer<=0) {vf_bilayer=1e-5;}
+    if (vf_bilayer>1) {vf_bilayer=1;}
+   
+    
+    //outer hydrocarbons
+    l_ohc=l_lipid2;
+    nf_ohc_lipid  =1-nf_lipid_2-nf_lipid_3-nf_chol;
+    nf_ohc_lipid_2=nf_lipid_2;
+    nf_ohc_lipid_3=nf_lipid_3;
+    nf_ohc_chol=nf_chol;
+    V_ohc=nf_ohc_lipid*(volacyllipid-volmethyllipid)+nf_ohc_lipid_2*(volacyllipid_2-volmethyllipid_2)+nf_ohc_lipid_3*(volacyllipid_3-volmethyllipid_3)+nf_ohc_chol*volchol;
+    nSL_ohc=nf_ohc_lipid*(nslacyllipid-nslmethyllipid)+nf_ohc_lipid_2*(nslacyllipid_2-nslmethyllipid_2)+nf_ohc_lipid_3*(nslacyllipid_3-nslmethyllipid_3)+nf_ohc_chol*nslchol;
+    
+    normarea=V_ohc/l_ohc;
+    c_s_ohc=vf_bilayer;
+    c_A_ohc=1;
+    c_V_ohc=1;
+        
+    lipid2->l=l_ohc;
+    lipid2->vol=V_ohc;
+    lipid2->nSL=nSL_ohc;
+    lipid2->nf=c_s_ohc*c_A_ohc*c_V_ohc;
+    //printf("c: c_s_ohc %lf c_A_ohc %lf c_V_ohc %lf \n", c_s_ohc, c_A_ohc, c_V_ohc);
+    
+    //outher methyl
+    nf_om_lipid  =nf_ohc_lipid;
+    nf_om_lipid_2=nf_ohc_lipid_2;
+    nf_om_lipid_3=nf_ohc_lipid_3;
+    V_om=nf_om_lipid*volmethyllipid+nf_om_lipid_2*volmethyllipid_2+nf_om_lipid_3*volmethyllipid_3;
+    l_om=l_ohc*V_om/V_ohc;
+    nSL_om=nf_om_lipid*nslmethyllipid+nf_om_lipid_2*nslmethyllipid_2+nf_om_lipid_3*nslmethyllipid_3;
+    
+    c_s_om=c_s_ohc;
+    c_A_om=1;
+    c_V_om=1;
+    
+    methyl2->l=l_om;
+    methyl2->vol=V_om;
+    methyl2->nSL=nSL_om;
+    methyl2->nf=c_s_om*c_A_om*c_V_om;
+    
+    
+    //inner hydrocarbons
+    // The following block contains the only difference to the parent object
+    l_ihc=l_lipid1;
+    nf_ihc_tether = nf_tether;
+    nf_ihc_lipid = (1-nf_ihc_tether) * (1-nf_lipid_2_inner-nf_lipid_3_inner-nf_chol_inner);
+    nf_ihc_lipid_2 = (1-nf_ihc_tether) * nf_lipid_2_inner;
+    nf_ihc_lipid_3 = (1-nf_ihc_tether) * nf_lipid_3_inner;
+    nf_ihc_chol = (1-nf_ihc_tether) * nf_chol_inner;
+    V_ihc=nf_ihc_lipid*(volacyllipid-volmethyllipid)+nf_ihc_lipid_2*(volacyllipid_2-volmethyllipid_2)+nf_ihc_lipid_3*(volacyllipid_3-volmethyllipid_3)+nf_ihc_chol*volchol+nf_ihc_tether*(volacyltether-volmethyltether);
+    nSL_ihc=nf_ihc_lipid*(nslacyllipid-nslmethyllipid)+nf_ihc_lipid_2*(nslacyllipid_2-nslmethyllipid_2)+nf_ihc_lipid_3*(nslacyllipid_3-nslmethyllipid_3)+nf_ihc_chol*nslchol+nf_ihc_tether*(nslacyltether-nslmethyltether);
+    
+    c_s_ihc=vf_bilayer;
+    c_A_ihc=normarea*l_ihc/V_ihc;
+    c_V_ihc=1;
+    
+    
+    lipid1->l=l_ihc;
+    lipid1->vol=V_ihc;
+    lipid1->nSL=nSL_ihc;
+    lipid1->nf=c_s_ihc*c_A_ihc*c_V_ihc;
+    
+    //inner methyl
+    nf_im_lipid=nf_ihc_lipid;
+    nf_im_lipid_2=nf_ihc_lipid_2;
+    nf_im_lipid_3=nf_ihc_lipid_3;
+    nf_im_tether=nf_ihc_tether;
+    V_im=nf_im_lipid*volmethyllipid+nf_im_lipid_2*volmethyllipid_2+nf_im_lipid_3*volmethyllipid_3+nf_im_tether*volmethyltether;
+    l_im=l_ihc*V_im/V_ihc;
+    nSL_im=nf_im_lipid*nslmethyllipid+nf_im_lipid_2*nslmethyllipid_2+nf_im_lipid_3*nslmethyllipid_3+nf_im_tether*nslmethyltether;
+    
+    c_s_im=c_s_ihc;
+    c_A_im=c_A_ihc;
+    c_V_im=1;
+    
+    methyl1->l=l_im;
+    methyl1->vol=V_im;
+    methyl1->nSL=nSL_im;
+    methyl1->nf=c_s_im*c_A_im*c_V_im;
+    
+    //outer headgroups
+    headgroup2->nf=c_s_ohc*c_A_ohc*nf_ohc_lipid*(1-hc_substitution_2);
+    headgroup2_2->nf=c_s_ohc*c_A_ohc*nf_ohc_lipid_2*(1-hc_substitution_2);
+    headgroup2_3->nf=c_s_ohc*c_A_ohc*nf_ohc_lipid_3*(1-hc_substitution_2);
+    
+    //inner headgroups
+    //the philosophy is that penetrating material into the inner hydrocarbons (hc_substitution_1)
+    //only replaces lipid molecules but not tether molecules
+    //temp=1-nf_tether-hc_substitution_1;
+    //if (temp<0){temp=0;}
+    //if (nf_tether!=1) {
+    //    temp=temp/(1-nf_tether);
+    //}
+    //else {
+    //    temp=1;
+    //}
+    
+    headgroup1->nf=c_s_ihc*c_A_ihc*nf_ihc_lipid*(1-hc_substitution_2);
+    headgroup1_2->nf=c_s_ihc*c_A_ihc*nf_ihc_lipid_2*(1-hc_substitution_2);
+    headgroup1_3->nf=c_s_ihc*c_A_ihc*nf_ihc_lipid_3*(1-hc_substitution_2);
+    //printf("c: c_s_ihc %lf c_A_ihc %lf nf_ihc_lipid %lf hc_substitution_1 %lf \n", c_s_ihc, c_A_ihc, nf_ihc_lipid, hc_substitution_1);
+
+    //tether glycerol part
+    V_tg=tetherg->vol;
+    
+    c_s_tg=c_s_ihc;
+    c_A_tg=c_A_ihc;
+    c_V_tg=nf_ihc_tether*(1-hc_substitution_2);
+    
+    tetherg->l=tetherg->vol/((volacyltether-volmethyltether)/lipid1->l)/0.9;
+    tetherg->nf=c_s_tg*c_A_tg*c_V_tg;
+
+
+    //tether EO part
+    l_EO=l_tether;
+    V_EO=tether->vol;
+    
+    c_s_EO=c_s_ihc;
+    c_A_EO=c_A_ihc;
+    c_V_EO=nf_ihc_tether*(1-hc_substitution_2);
+    
+    tether->nf=c_s_EO*c_A_EO*c_V_EO;
+    tether->l=l_EO;
+    
+    if ((tether->nf*tether->vol/tether->l)>normarea) {
+        tether->l=(tether->nf*tether->vol)/normarea;
+    }
+    
+    l_tether=tether->l;
+    
+    
+    //bME
+    bME->l=5.2;
+    l_bME=bME->l;
+    headgroup1->l=9.575;
+    V_bME=bME->vol;
+    
+    
+    d1=headgroup1->l+bME->l-tether->l-tetherg->l;
+    if (d1>0) {
+        bME->l=bME->l-d1/2;
+        headgroup1->l=headgroup1->l-d1/2;
+    }
+    
+    
+    if ((tether->nf*tether->vol/tether->l+mult_tether*tether->nf*bME->vol/bME->l)>normarea) {
+        mult_tether=((normarea-tether->nf*tether->vol/tether->l)/(bME->vol/bME->l))/tether->nf;
+        if (mult_tether<0) {
+            mult_tether=0;
+        }
+    }
+    
+    bME->nf=tether->nf*mult_tether; //2.333;
+    
+    
+    //substrate
+    substrate->vol=normarea*substrate->l;
+    substrate->nSL=rho_substrate*substrate->vol;
+    
+    
+    // set all lengths
+    bME->z=0.5*bME->l+substrate->l;
+    tether->z=0.5*tether->l+substrate->l;
+    tetherg->z=tether->z+0.5*tether->l+0.5*tetherg->l;
+    lipid1->z=tetherg->z+0.5*(tetherg->l+lipid1->l);
+    headgroup1->fnSetZ(lipid1->z-0.5*lipid1->l-0.5*headgroup1->l);
+    headgroup1_2->fnSetZ(lipid1->z-0.5*lipid1->l-0.5*headgroup1_2->l);
+    headgroup1_3->fnSetZ(lipid1->z-0.5*lipid1->l-0.5*headgroup1_3->l);
+    methyl1->z=lipid1->z+0.5*(lipid1->l+methyl1->l);
+    methyl2->z=methyl1->z+0.5*(methyl1->l+methyl2->l);
+    lipid2->z=methyl2->z+0.5*(methyl2->l+lipid2->l);
+    headgroup2->fnSetZ(lipid2->z+0.5*lipid2->l+0.5*headgroup2->l);
+    headgroup2_2->fnSetZ(lipid2->z+0.5*lipid2->l+0.5*headgroup2_2->l);
+    headgroup2_3->fnSetZ(lipid2->z+0.5*lipid2->l+0.5*headgroup2_3->l);
+    
+    //defects
+    hclength=(lipid1->l+methyl1->l+methyl2->l+lipid2->l);
+    hglength=headgroup1->l+headgroup2->l;
+    
+    if (radius_defect<(0.5*(hclength+hglength))) {radius_defect=0.5*(hclength+hglength);}
+    
+    volhalftorus=3.14159265359*3.14159265359*(radius_defect-(2*hclength/3/3.14159265359))*hclength*hclength/4;
+    volcylinder=3.14159265359*radius_defect*radius_defect*hclength;
+    //printf("volhalftorus %lf volcylinder %lf \n", volhalftorus, volcylinder);
+    defectarea=volhalftorus/volcylinder*(1-vf_bilayer)*normarea;
+    //printf("defectarea %lf \n", defectarea);
+    
+    defect_hydrocarbon->vol=defectarea*hclength;
+    defect_hydrocarbon->l=hclength;
+    defect_hydrocarbon->z=lipid1->z-0.5*lipid1->l+0.5*hclength;
+    defect_hydrocarbon->nSL=lipid2->nSL/lipid2->vol*defect_hydrocarbon->vol;
+    defect_hydrocarbon->fnSetSigma(sigma);
+    defect_hydrocarbon->nf=1;
+    
+    defectratio=defect_hydrocarbon->vol/lipid2->vol;
+    
+    defect_headgroup->vol=defectratio*(headgroup2->vol*headgroup2->nf+headgroup2_2->vol*headgroup2_2->nf+headgroup2_3->vol*headgroup2_3->nf);
+    defect_headgroup->l=(hclength+hglength);
+    defect_headgroup->z=headgroup1->fnGetZ()-0.5*headgroup1->l+0.5*(hclength+hglength);
+    defect_headgroup->nSL=defectratio*(headgroup2->fnGetTotalnSL()*headgroup2->nf+headgroup2_2->fnGetnSL(bulknsld)*headgroup2_2->nf+headgroup2_3->fnGetnSL(bulknsld)*headgroup2_3->nf);
+    defect_headgroup->fnSetSigma(sigma);
+    defect_headgroup->nf=1;
+    
+    //printf("Exit AdjustParameters \n");
+    
+};
+
+void tBLM_quaternary_chol_2leaflet::fnSet(double _sigma, double _global_rough, double _rho_substrate, double _bulknsld, double _nf_tether, double _mult_tether, double _l_tether, double _l_lipid1, double _l_lipid2, double _vf_bilayer, double _nf_lipid_2, double _nf_lipid_3, double _nf_chol, double _nf_lipid_2_inner, double _nf_lipid_3_inner, double _nf_chol_inner, double _hc_substitution_1, double _hc_substitution_2, double _radius_defect){
+    
+    //printf("Enter fnSet \n");
+    
+    sigma=_sigma;
+    global_rough=_global_rough;
+    rho_substrate=_rho_substrate;
+    bulknsld=_bulknsld;
+    nf_tether=_nf_tether;
+    mult_tether=_mult_tether;
+    l_tether=_l_tether;
+    l_lipid1=_l_lipid1;
+    l_lipid2=_l_lipid2;
+    vf_bilayer=_vf_bilayer;
+    nf_lipid_2=_nf_lipid_2;
+    nf_lipid_3=_nf_lipid_3;
+    nf_chol=_nf_chol;
+    nf_lipid_2_inner = _nf_lipid_2_inner;
+    nf_lipid_3_inner = _nf_lipid_3_inner;
+    nf_chol_inner = _nf_chol_inner;
+    hc_substitution_1=_hc_substitution_1;
+    hc_substitution_2=_hc_substitution_2;
+    radius_defect=_radius_defect;
+    
+    fnAdjustParameters();
+    
+    //printf("Exit fnSet \n");
 }
 
 //------------------------------------------------------------------------------------------------------
@@ -5990,6 +6288,40 @@ BLM_POPC_POPE_PIP_chol::BLM_POPC_POPE_PIP_chol()
     
 }
 
+BLM_DMPC_d54DMPC_PIP_chol::BLM_DMPC_d54DMPC_PIP_chol()
+{
+    volacyllipid=770;
+    nslacyllipid=-2.9166E-04;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    
+    volacyllipid_2=770;
+    nslacyllipid_2=5.3324E-03;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=5.334e-4;
+
+    headgroup1_2->vol=330;
+    headgroup2_2->vol=330;
+    headgroup1_2->nSL=6.0012e-4;
+    headgroup2_2->nSL=6.0012e-4;
+    headgroup1_2->l=9.5;
+    headgroup2_2->l=9.5;
+
+    headgroup1_3->vol=500;                //PIP volume and length are estimates
+    headgroup2_3->vol=500;
+    headgroup1_3->nSL=1.22e-3;
+    headgroup2_3->nSL=1.22e-3;
+    headgroup1_3->l=12.0;
+    headgroup2_3->l=12.0;
+    
+    volchol=630;
+    nslchol=1.3215e-4;
+    
+    
+    fnAdjustParameters();
+    
+}
+
 
 Monolayer_DOPS::Monolayer_DOPS()
 {
@@ -6214,8 +6546,56 @@ ssBLM_POPC_PIP::ssBLM_POPC_PIP()
     nslmethyllipid_2=-9.15e-5;
     
     fnAdjustParameters();
+}
+
+ssBLM_POPC_DPPC::ssBLM_POPC_DPPC()
+{
+    
+    volacyllipid=925;
+    nslacyllipid=-2.6688e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    
+    headgroup1_2->vol=335;
+    headgroup2_2->vol=335;
+    headgroup1_2->nSL=6.0063e-4;
+    headgroup2_2->nSL=6.0063e-4;
+    headgroup1_2->l=9.56;
+    headgroup2_2->l=9.56;
+    
+    volacyllipid_2=789;
+    nslacyllipid_2=-3.2477e-4;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    fnAdjustParameters();
     
 }
+
+ssBLM_DOPC_DPPC::ssBLM_DOPC_DPPC()
+{
+    
+    volacyllipid=972.00;
+    nslacyllipid=-2.0874E-04;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    
+    headgroup1_2->vol=335;
+    headgroup2_2->vol=335;
+    headgroup1_2->nSL=6.0063e-4;
+    headgroup2_2->nSL=6.0063e-4;
+    headgroup1_2->l=9.56;
+    headgroup2_2->l=9.56;
+    
+    volacyllipid_2=789;
+    nslacyllipid_2=-3.2477e-4;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    fnAdjustParameters();
+    
+}
+
 
 ssBLM_DPPC_d62DPPC::ssBLM_DPPC_d62DPPC()
 {
@@ -6874,13 +7254,100 @@ tBLM_WC14_DMPC_DMPG::tBLM_WC14_DMPC_DMPG()
     
 }
 
+tBLM_WC14_DMPC_DMPG_d54DMPC::tBLM_WC14_DMPC_DMPG_d54DMPC()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=770;
+    nslacyllipid=-2.9166E-04;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=850;
+    nslacyltether=-3.5834e-4;
+    
+    headgroup1_2->vol=270;
+    headgroup1_2->nSL=7.1472e-4;
+    headgroup1_2->l=7.8;
+    headgroup2_2->vol=270;
+    headgroup2_2->nSL=7.1472e-4;
+    headgroup2_2->l=7.8;
+    
+    headgroup1_3->vol=335;
+    headgroup1_3->nSL=6.0063E-04;
+    headgroup1_3->l=9.5;
+    headgroup2_3->vol=335;
+    headgroup2_3->nSL=6.0063E-04;
+    headgroup2_3->l=9.5;
+    
+    volacyllipid_2=770;
+    nslacyllipid_2=-2.9166E-04;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    volacyllipid_3=770;
+    nslacyllipid_3=5.3324E-03;
+    volmethyllipid_3=98.8;
+    nslmethyllipid_3=5.334e-4;
+
+    
+    fnAdjustParameters();
+}
+
+tBLM_WC14_DMPC_DMPG_d54DMPC_2leaflet::tBLM_WC14_DMPC_DMPG_d54DMPC_2leaflet()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=770;
+    nslacyllipid=-2.9166E-04;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=850;
+    nslacyltether=-3.5834e-4;
+    
+    headgroup1_2->vol=270;
+    headgroup1_2->nSL=7.1472e-4;
+    headgroup1_2->l=7.8;
+    headgroup2_2->vol=270;
+    headgroup2_2->nSL=7.1472e-4;
+    headgroup2_2->l=7.8;
+    
+    headgroup1_3->vol=335;
+    headgroup1_3->nSL=6.0063E-04;
+    headgroup1_3->l=9.5;
+    headgroup2_3->vol=335;
+    headgroup2_3->nSL=6.0063E-04;
+    headgroup2_3->l=9.5;
+    
+    volacyllipid_2=770;
+    nslacyllipid_2=-2.9166E-04;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    volacyllipid_3=770;
+    nslacyllipid_3=5.3324E-03;
+    volmethyllipid_3=98.8;
+    nslmethyllipid_3=5.334e-4;
+    
+    fnAdjustParameters();
+}
+
 tBLM_WC14_DOPC_DOPS::tBLM_WC14_DOPC_DOPS()
 {
-	tether->vol=380;
-	tether->nSL=2.1864e-4;
-	tetherg->vol=110;
-	tetherg->nSL=1.8654e-4;
-	
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
     volacyllipid=972;
     nslacyllipid=-2.09e-4;
     volmethyllipid=98.8;
@@ -6890,13 +7357,13 @@ tBLM_WC14_DOPC_DOPS::tBLM_WC14_DOPC_DOPS()
     volacyltether=850;
     nslacyltether=-3.5834e-4;
     
-	headgroup1_2->vol=260;                //PS volume and length are estimates
-	headgroup2_2->vol=260;
-	headgroup1_2->fnSetnSL(8.4513e-4,1.1576E-03);
-	headgroup2_2->fnSetnSL(8.4513e-4,1.1576E-03);
-	headgroup1_2->l=7.5;
-	headgroup2_2->l=7.5;
-	
+    headgroup1_2->vol=260;                //PS volume and length are estimates
+    headgroup2_2->vol=260;
+    headgroup1_2->fnSetnSL(8.4513e-4,1.1576E-03);
+    headgroup2_2->fnSetnSL(8.4513e-4,1.1576E-03);
+    headgroup1_2->l=7.5;
+    headgroup2_2->l=7.5;
+    
     volacyllipid_2=972;
     nslacyllipid_2=-2.09e-4;
     volmethyllipid_2=98.8;
@@ -7384,6 +7851,55 @@ tBLM_HC18_POPC_POPE_Cardiolipin18T1_CHOL::tBLM_HC18_POPC_POPE_Cardiolipin18T1_CH
     
 }
 
+tBLM_HC18_POPC_POPE_KDO2_CHOL::tBLM_HC18_POPC_POPE_KDO2_CHOL()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=925;
+    nslacyllipid=-2.67e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=999;
+    nslacyltether=-2.25e-4;
+    
+    headgroup1_2->vol=262;                //PE volume and length are estimates
+    headgroup2_2->vol=262;
+    headgroup1_2->nSL=5.4558E-04;
+    headgroup2_2->nSL=5.4558E-04;
+    headgroup1_2->l=7.7;
+    headgroup2_2->l=7.7;
+    
+    volacyllipid_2=925;
+    nslacyllipid_2=-2.67e-4;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    volchol=630;
+    nslchol=1.3215e-4;
+    
+    headgroup1_3->vol=200.00;                //KDO2
+    headgroup2_3->vol=1359.00;
+    headgroup1_3->fnSetnSL(3.1008E-03,3.45883E-03);
+    headgroup2_3->fnSetnSL(3.1008E-03,3.45883E-03);
+    headgroup1_3->l=12.0;
+    headgroup2_3->l=12.0;
+    
+    volacyllipid_3=2066.40;
+    nslacyllipid_3=-7.9101E-04;
+    volmethyllipid_3=98.8*3;
+    nslmethyllipid_3=-9.15e-5*3;
+
+    fnAdjustParameters();
+    
+}
+
+
+
 tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL::tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL()
 {
     tether->vol=380;
@@ -7428,8 +7944,101 @@ tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL::tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CH
     nslmethyllipid_3=-9.15e-5*2;
     
     fnAdjustParameters();
-    
 }
+
+
+tBLM_HC18_DOPC_CERNP_STEARIC_CHOL::tBLM_HC18_DOPC_CERNP_STEARIC_CHOL()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=972;
+    nslacyllipid=-2.09e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=999;
+    nslacyltether=-2.25e-4;
+    
+    headgroup1_2->vol=200;                //PG volume and length are estimates
+    headgroup2_2->vol=200;
+    headgroup1_2->fnSetnSL(1.60733E-06,3.68965E-06);
+    headgroup2_2->fnSetnSL(1.60733E-06,3.68965E-06);
+    headgroup1_2->l=7.8;
+    headgroup2_2->l=7.8;
+    
+    volacyllipid_2=1093.00;
+    nslacyllipid_2=-3.8310E-04;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    volchol=630;
+    nslchol=1.3215e-4;
+    
+    headgroup1_3->vol=55;                //cardiolipin
+    headgroup2_3->vol=55;
+    headgroup1_3->fnSetnSL(1.8254E-04,1.8254E-04);
+    headgroup2_3->fnSetnSL(1.8254E-04,1.8254E-04);
+    headgroup1_3->l=5.0;
+    headgroup2_3->l=5.0;
+    
+    volacyllipid_3=504.20;
+    nslacyllipid_3=-1.7905E-04;
+    volmethyllipid_3=98.8;
+    nslmethyllipid_3=-9.15e-5;
+    
+    fnAdjustParameters();
+}
+
+tBLM_HC18_DOPC_CERNP_LIGNOCERIC_CHOL::tBLM_HC18_DOPC_CERNP_LIGNOCERIC_CHOL()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=972;
+    nslacyllipid=-2.09e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=999;
+    nslacyltether=-2.25e-4;
+    
+    headgroup1_2->vol=200;                //PG volume and length are estimates
+    headgroup2_2->vol=200;
+    headgroup1_2->fnSetnSL(1.60733E-06,3.68965E-06);
+    headgroup2_2->fnSetnSL(1.60733E-06,3.68965E-06);
+    headgroup1_2->l=7.8;
+    headgroup2_2->l=7.8;
+    
+    volacyllipid_2=1093.00;
+    nslacyllipid_2=-3.8310E-04;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=-9.15e-5;
+    
+    volchol=630;
+    nslchol=1.3215e-4;
+    
+    headgroup1_3->vol=55;                //cardiolipin
+    headgroup2_3->vol=55;
+    headgroup1_3->fnSetnSL(1.8254E-04,1.8254E-04);
+    headgroup2_3->fnSetnSL(1.8254E-04,1.8254E-04);
+    headgroup1_3->l=5.0;
+    headgroup2_3->l=5.0;
+    
+    volacyllipid_3=673.40;
+    nslacyllipid_3=-2.2904E-04;
+    volmethyllipid_3=98.8;
+    nslmethyllipid_3=-9.15e-5;
+    
+    fnAdjustParameters();
+}
+
 
 tBLM_HC18_DOPC_DOPS_PIP_CHOL_domain::tBLM_HC18_DOPC_DOPS_PIP_CHOL_domain()
 {
@@ -7538,6 +8147,49 @@ tBLM_WC14_POPC_POPS_POPA::tBLM_WC14_POPC_POPS_POPA()
     
 }
 
+tBLM_WC14_POPC_d31POPC_POPA::tBLM_WC14_POPC_d31POPC_POPA()
+{
+    tether->vol=380;
+    tether->nSL=2.1864e-4;
+    tetherg->vol=110;
+    tetherg->nSL=1.8654e-4;
+    
+    volacyllipid=925;
+    nslacyllipid=-2.67e-4;
+    volmethyllipid=98.8;
+    nslmethyllipid=-9.15e-5;
+    volmethyltether=98.8;
+    nslmethyltether=-9.15e-5;
+    volacyltether=850;
+    nslacyltether=-3.5834e-4;
+    
+    headgroup1_2->vol=280;                //PS volume and length are estimates
+    headgroup2_2->vol=280;
+    headgroup1_2->fnSetnSL(8.4513e-4,1.1576E-03);
+    headgroup2_2->fnSetnSL(8.4513e-4,1.1576E-03);
+    headgroup1_2->l=8.1;
+    headgroup2_2->l=8.1;
+    
+    volacyllipid_2=925;
+    nslacyllipid_2=2.9618E-03;
+    volmethyllipid_2=98.8;
+    nslmethyllipid_2=2.2087e-4;
+
+    headgroup1_3->vol=174;                //was 174
+    headgroup2_3->vol=174;                //was 174
+    headgroup1_3->nSL=6.2364e-4;          //was 6.2364e-4
+    headgroup2_3->nSL=6.2364e-4;          //was 6.2364e-4
+    headgroup1_3->l=5;
+    headgroup2_3->l=5;
+    
+    volacyllipid_3=925;
+    nslacyllipid_3=-2.67e-4;
+    volmethyllipid_3=98.8;
+    nslmethyllipid_3=-9.15e-5;
+ 
+    fnAdjustParameters();
+    
+}
 
 
 //------------------------------------------------------------------------------------------------------

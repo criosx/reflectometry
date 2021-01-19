@@ -873,6 +873,26 @@ public:
 
 //------------------------------------------------------------------------------------------------------
 //tethered lipid bilayer, quaternary lipid bilayer
+//inner and outer lipid leaflet have separate nf_lipidx and nf_chol values
+class tBLM_quaternary_chol_2leaflet: public tBLM_quaternary_chol
+{
+public:
+    tBLM_quaternary_chol_2leaflet();
+    virtual ~tBLM_quaternary_chol_2leaflet() {};
+    virtual void   fnAdjustParameters();
+    using tBLM_quaternary_chol::fnSet;
+    virtual void   fnSet(double sigma, double global_rough, double rho_substrate, double dbulknsld, double nf_tether, double mult_tether, double l_tether, double l_lipid1, double l_lipid2, double vf_bilayer, double nf_lipid_2=0, double nf_lipid_3=0, double nf_chol=0, double nf_lipid_2_inner=0, double nf_lipid_3_inner=0, double nf_chol_inner=0, double hc_substitution_1=0, double hc_substitution_2=0, double radius_defect=100);
+        
+    //primary fit parameters
+    double nf_lipid_2_inner;
+    double nf_lipid_3_inner;
+    double nf_chol_inner;
+    
+    //other parameters
+};
+
+//------------------------------------------------------------------------------------------------------
+//tethered lipid bilayer, quaternary lipid bilayer
 //there will be a domains implemented in a way that 
 //there is a separate set of nf_..._domain parameters for 
 //the second domain, and that there is a frac_domain parameter
@@ -933,6 +953,13 @@ class BLM_POPC_POPE_PIP_chol: public BLM_quaternary
 public:
     BLM_POPC_POPE_PIP_chol();
     virtual ~BLM_POPC_POPE_PIP_chol() {};
+};
+
+class BLM_DMPC_d54DMPC_PIP_chol: public BLM_quaternary
+{
+public:
+    BLM_DMPC_d54DMPC_PIP_chol();
+    virtual ~BLM_DMPC_d54DMPC_PIP_chol() {};
 };
 
 
@@ -1029,6 +1056,20 @@ class ssBLM_POPC_PIP: public ssBLM_quaternary
 public:
     ssBLM_POPC_PIP();
     virtual ~ssBLM_POPC_PIP() {};
+};
+
+class ssBLM_POPC_DPPC: public ssBLM_quaternary
+{
+public:
+    ssBLM_POPC_DPPC();
+    virtual ~ssBLM_POPC_DPPC() {};
+};
+
+class ssBLM_DOPC_DPPC: public ssBLM_quaternary
+{
+public:
+    ssBLM_DOPC_DPPC();
+    virtual ~ssBLM_DOPC_DPPC() {};
 };
 
 class ssBLM_DPPC_d62DPPC: public ssBLM_quaternary
@@ -1197,7 +1238,6 @@ public:
     virtual ~tBLM_WC14_DMPC_DMPG() {};
 };
 
-
 class tBLM_WC14_DOPC_DOPS: public tBLM_quaternary_chol
 {
 public:
@@ -1269,6 +1309,32 @@ public:
     virtual ~tBLM_WC14_POPC_POPS_POPA() {};
 };
 
+class tBLM_WC14_POPC_d31POPC_POPA: public tBLM_quaternary_chol
+{
+public:
+    tBLM_WC14_POPC_d31POPC_POPA();
+    virtual ~tBLM_WC14_POPC_d31POPC_POPA() {};
+};
+
+class tBLM_WC14_DMPC_DMPG_d54DMPC: public tBLM_quaternary_chol
+{
+public:
+    tBLM_WC14_DMPC_DMPG_d54DMPC();
+    virtual ~tBLM_WC14_DMPC_DMPG_d54DMPC() {};
+};
+
+//-----------------------------------------------------------------------------------------------------------
+// tBLM Library -- tBLM_ternary 2 leaflet
+//-----------------------------------------------------------------------------------------------------------
+
+class tBLM_WC14_DMPC_DMPG_d54DMPC_2leaflet: public tBLM_quaternary_chol_2leaflet
+{
+public:
+    tBLM_WC14_DMPC_DMPG_d54DMPC_2leaflet();
+    virtual ~tBLM_WC14_DMPC_DMPG_d54DMPC_2leaflet() {};
+};
+
+
 //-----------------------------------------------------------------------------------------------------------
 // tBLM Library -- tBLM_quaternary
 //-----------------------------------------------------------------------------------------------------------
@@ -1297,11 +1363,29 @@ public:
     tBLM_HC18_POPC_POPE_Cardiolipin18T1_CHOL();
     virtual ~tBLM_HC18_POPC_POPE_Cardiolipin18T1_CHOL() {};
 };
+class tBLM_HC18_POPC_POPE_KDO2_CHOL: public tBLM_quaternary_chol
+{
+public:
+    tBLM_HC18_POPC_POPE_KDO2_CHOL();
+    virtual ~tBLM_HC18_POPC_POPE_KDO2_CHOL() {};
+};
 class tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL: public tBLM_quaternary_chol
 {
 public:
     tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL();
     virtual ~tBLM_HC18_DOPC_POPG_Cardiolipin18T1_CHOL() {};
+};
+class tBLM_HC18_DOPC_CERNP_STEARIC_CHOL: public tBLM_quaternary_chol
+{
+public:
+    tBLM_HC18_DOPC_CERNP_STEARIC_CHOL();
+    virtual ~tBLM_HC18_DOPC_CERNP_STEARIC_CHOL() {};
+};
+class tBLM_HC18_DOPC_CERNP_LIGNOCERIC_CHOL: public tBLM_quaternary_chol
+{
+public:
+    tBLM_HC18_DOPC_CERNP_LIGNOCERIC_CHOL();
+    virtual ~tBLM_HC18_DOPC_CERNP_LIGNOCERIC_CHOL() {};
 };
 
 //-----------------------------------------------------------------------------------------------------------
